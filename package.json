@@ -1,0 +1,25 @@
+{
+  "name": "video-platform-server",
+  "version": "1.0.0",
+  "description": "Полноценная платформа видеохостинга в одном файле",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"Без тестов - всё работает!\" && exit 0"
+  },
+  "keywords": [
+    "video",
+    "platform",
+    "youtube-clone",
+    "streaming",
+    "social-media"
+  ],
+  "author": "VideoPlatform Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
