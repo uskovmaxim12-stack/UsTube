@@ -1,16 +1,26 @@
 {
   "name": "ustube",
-  "version": "3.0.0",
-  "description": "YouTube клон с работающим сервером",
+  "version": "4.0.0",
+  "description": "YouTube клон с MongoDB и глобальным доступом",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "deploy": "node server.js"
   },
-  "keywords": ["youtube", "clone", "video", "platform"],
+  "keywords": [
+    "youtube",
+    "clone",
+    "video",
+    "hosting",
+    "mongodb"
+  ],
   "author": "USTube Team",
   "license": "MIT",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "mongodb": "^6.0.0"
   }
 }
