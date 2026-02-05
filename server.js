@@ -2,58 +2,99 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { MongoClient } = require('mongodb');
+const url = require('url');
 
 class USTubeServer {
     constructor(port = process.env.PORT || 3000) {
         this.port = port;
-        this.dataDir = './data';
-        this.ensureDataDir();
-        this.loadData();
-        this.start();
+        this.mongoUrl = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+        this.dbName = 'ustube';
+        this.init();
     }
     
-    ensureDataDir() {
-        if (!fs.existsSync(this.dataDir)) {
-            fs.mkdirSync(this.dataDir, { recursive: true });
+    async init() {
+        await this.connectDB();
+        await this.createAdminUser();
+        this.startServer();
+    }
+    
+    async connectDB() {
+        try {
+            this.client = new MongoClient(this.mongoUrl);
+            await this.client.connect();
+            this.db = this.client.db(this.dbName);
+            
+            this.users = this.db.collection('users');
+            this.videos = this.db.collection('videos');
+            this.comments = this.db.collection('comments');
+            this.likes = this.db.collection('likes');
+            this.subscriptions = this.db.collection('subscriptions');
+            this.views = this.db.collection('views');
+            
+            console.log('✅ MongoDB подключена');
+        } catch (error) {
+            console.error('❌ Ошибка MongoDB:', error);
+            // Используем память как fallback
+            this.useMemoryStorage();
         }
     }
     
-    loadData() {
-        this.users = this.loadFromFile('users.json') || {};
-        this.videos = this.loadFromFile('videos.json') || {};
-        this.comments = this.loadFromFile('comments.json') || {};
-        this.subscriptions = this.loadFromFile('subscriptions.json') || {};
-        this.likes = this.loadFromFile('likes.json') || {};
-        this.history = this.loadFromFile('history.json') || {};
+    useMemoryStorage() {
+        console.log('⚠️  Используем память для хранения');
+        this.users = { find: () => ({ toArray: () => [] }) };
+        this.videos = { 
+            find: () => ({ 
+                sort: () => ({ 
+                    limit: () => ({ 
+                        toArray: () => this.demoVideos 
+                    }) 
+                }) 
+            }),
+            insertOne: (data) => console.log('Запись в память:', data),
+            updateOne: () => {},
+            deleteOne: () => {}
+        };
         
-        console.log('✅ Данные загружены');
-        console.log(`👤 Пользователей: ${Object.keys(this.users).length}`);
-        console.log(`🎥 Видео: ${Object.keys(this.videos).length}`);
+        this.demoVideos = [
+            {
+                _id: '1',
+                title: 'Добро пожаловать в USTube!',
+                description: 'Новая платформа видеохостинга',
+                channel: { username: 'USTube Team', _id: 'admin' },
+                views: 1500,
+                likes: 120,
+                duration: 120,
+                createdAt: new Date(),
+                visibility: 'public',
+                tags: ['приветствие', 'обзор'],
+                thumbnail: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg'
+            }
+        ];
     }
     
-    loadFromFile(filename) {
-        const filepath = path.join(this.dataDir, filename);
+    async createAdminUser() {
         try {
-            if (fs.existsSync(filepath)) {
-                return JSON.parse(fs.readFileSync(filepath, 'utf8'));
+            const adminExists = await this.users.findOne({ username: 'admin' });
+            if (!adminExists) {
+                const hashedPassword = crypto.createHash('sha256').update('140612').digest('hex');
+                await this.users.insertOne({
+                    username: 'admin',
+                    email: 'admin@ustube.com',
+                    password: hashedPassword,
+                    role: 'admin',
+                    createdAt: new Date(),
+                    subscribers: 0
+                });
+                console.log('👑 Админ пользователь создан');
             }
         } catch (error) {
-            console.error(`Ошибка загрузки ${filename}:`, error);
-        }
-        return null;
-    }
-    
-    saveToFile(filename, data) {
-        const filepath = path.join(this.dataDir, filename);
-        try {
-            fs.writeFileSync(filepath, JSON.stringify(data, null, 2));
-        } catch (error) {
-            console.error(`Ошибка сохранения ${filename}:`, error);
+            console.error('Ошибка создания админа:', error);
         }
     }
     
     generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        return crypto.randomBytes(16).toString('hex');
     }
     
     hashPassword(password) {
@@ -63,51 +104,70 @@ class USTubeServer {
     createToken(userId) {
         const token = crypto.randomBytes(32).toString('hex');
         const expires = Date.now() + 7 * 24 * 60 * 60 * 1000;
-        
-        if (!this.users[userId]) return null;
-        
-        this.users[userId].token = token;
-        this.users[userId].tokenExpires = expires;
-        this.saveToFile('users.json', this.users);
-        
-        return token;
+        return { token, expires };
     }
     
-    verifyToken(token) {
-        if (!token) return null;
+    async verifyToken(token) {
+        try {
+            const user = await this.users.findOne({ 
+                'token.token': token,
+                'token.expires': { $gt: Date.now() }
+            });
+            return user;
+        } catch (error) {
+            return null;
+        }
+    }
+    
+    async handleRequest(req, res) {
+        const parsedUrl = url.parse(req.url, true);
+        const pathname = parsedUrl.pathname;
         
-        for (const userId in this.users) {
-            const user = this.users[userId];
-            if (user.token === token && user.tokenExpires > Date.now()) {
-                return userId;
-            }
+        // CORS headers
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        
+        if (req.method === 'OPTIONS') {
+            res.writeHead(200);
+            res.end();
+            return;
         }
         
-        return null;
+        // Маршруты API
+        if (pathname.startsWith('/api/')) {
+            await this.handleAPI(req, res, parsedUrl);
+            return;
+        }
+        
+        // Статические файлы
+        this.serveStatic(req, res, pathname);
     }
     
-    serveStatic(req, res, url) {
-        let filePath = '.' + url.pathname;
+    serveStatic(req, res, pathname) {
+        let filePath = '.' + pathname;
         if (filePath === './') {
             filePath = './index.html';
         }
         
-        const extname = path.extname(filePath);
-        let contentType = 'text/html';
+        const ext = path.extname(filePath);
+        const mimeTypes = {
+            '.html': 'text/html',
+            '.css': 'text/css',
+            '.js': 'application/javascript',
+            '.json': 'application/json',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.svg': 'image/svg+xml'
+        };
         
-        switch (extname) {
-            case '.js': contentType = 'text/javascript'; break;
-            case '.css': contentType = 'text/css'; break;
-            case '.json': contentType = 'application/json'; break;
-            case '.png': contentType = 'image/png'; break;
-            case '.jpg': contentType = 'image/jpg'; break;
-            case '.ico': contentType = 'image/x-icon'; break;
-        }
+        const contentType = mimeTypes[ext] || 'application/octet-stream';
         
         fs.readFile(filePath, (error, content) => {
             if (error) {
-                if(error.code === 'ENOENT') {
-                    // Страница не найдена
+                if (error.code === 'ENOENT') {
+                    // Страница не найдена - отдаем SPA
                     fs.readFile('./index.html', (err, data) => {
                         res.writeHead(200, { 'Content-Type': 'text/html' });
                         res.end(data, 'utf-8');
@@ -123,294 +183,626 @@ class USTubeServer {
         });
     }
     
-    handleAPI(req, res, url) {
+    async handleAPI(req, res, parsedUrl) {
+        const pathname = parsedUrl.pathname;
         const method = req.method;
-        const path = url.pathname;
         
-        // CORS headers
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-        
-        if (method === 'OPTIONS') {
-            res.writeHead(200);
-            res.end();
-            return;
-        }
-        
-        // Получаем токен авторизации
-        let userId = null;
-        const authHeader = req.headers.authorization;
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            const token = authHeader.substring(7);
-            userId = this.verifyToken(token);
-        }
-        
-        // Парсим тело запроса
+        // Получаем тело запроса
         let body = '';
         req.on('data', chunk => {
             body += chunk.toString();
         });
         
-        req.on('end', () => {
+        req.on('end', async () => {
             try {
-                req.body = body ? JSON.parse(body) : {};
-                req.userId = userId;
-                req.query = Object.fromEntries(url.searchParams);
+                const data = body ? JSON.parse(body) : {};
+                const query = parsedUrl.query;
                 
-                this.routeAPI(req, res, path, method);
+                // Получаем токен авторизации
+                let user = null;
+                const authHeader = req.headers.authorization;
+                if (authHeader && authHeader.startsWith('Bearer ')) {
+                    const token = authHeader.substring(7);
+                    user = await this.verifyToken(token);
+                }
+                
+                // Обработка маршрутов
+                let result = { success: false, message: 'Маршрут не найден' };
+                
+                // Аутентификация
+                if (pathname === '/api/auth/register' && method === 'POST') {
+                    result = await this.register(data);
+                } else if (pathname === '/api/auth/login' && method === 'POST') {
+                    result = await this.login(data);
+                } else if (pathname === '/api/auth/me' && method === 'GET') {
+                    result = { success: !!user, user };
+                } else if (pathname === '/api/auth/logout' && method === 'POST') {
+                    result = await this.logout(user);
+                
+                // Видео
+                } else if (pathname === '/api/videos' && method === 'GET') {
+                    result = await this.getVideos(query);
+                } else if (pathname === '/api/videos' && method === 'POST') {
+                    result = await this.uploadVideo(data, user);
+                } else if (pathname.match(/^\/api\/videos\/([^\/]+)$/) && method === 'GET') {
+                    const videoId = pathname.split('/')[3];
+                    result = await this.getVideo(videoId);
+                } else if (pathname.match(/^\/api\/videos\/([^\/]+)$/) && method === 'PUT') {
+                    const videoId = pathname.split('/')[3];
+                    result = await this.updateVideo(videoId, data, user);
+                } else if (pathname.match(/^\/api\/videos\/([^\/]+)$/) && method === 'DELETE') {
+                    const videoId = pathname.split('/')[3];
+                    result = await this.deleteVideo(videoId, user);
+                
+                // Комментарии
+                } else if (pathname.match(/^\/api\/videos\/([^\/]+)\/comments$/) && method === 'GET') {
+                    const videoId = pathname.split('/')[3];
+                    result = await this.getComments(videoId);
+                } else if (pathname.match(/^\/api\/videos\/([^\/]+)\/comments$/) && method === 'POST') {
+                    const videoId = pathname.split('/')[3];
+                    result = await this.addComment(videoId, data, user);
+                
+                // Лайки
+                } else if (pathname.match(/^\/api\/videos\/([^\/]+)\/like$/) && method === 'POST') {
+                    const videoId = pathname.split('/')[3];
+                    result = await this.likeVideo(videoId, user);
+                } else if (pathname.match(/^\/api\/videos\/([^\/]+)\/dislike$/) && method === 'POST') {
+                    const videoId = pathname.split('/')[3];
+                    result = await this.dislikeVideo(videoId, user);
+                
+                // Подписки
+                } else if (pathname === '/api/channels/subscriptions' && method === 'GET') {
+                    result = await this.getSubscriptions(user);
+                } else if (pathname.match(/^\/api\/channels\/([^\/]+)\/subscribe$/) && method === 'POST') {
+                    const channelId = pathname.split('/')[3];
+                    result = await this.subscribe(channelId, user);
+                
+                // Админ
+                } else if (pathname === '/api/admin/stats' && method === 'GET') {
+                    result = await this.getAdminStats(user);
+                } else if (pathname === '/api/admin/users' && method === 'GET') {
+                    result = await this.getAdminUsers(user);
+                } else if (pathname === '/api/admin/videos' && method === 'GET') {
+                    result = await this.getAdminVideos(user);
+                } else if (pathname.match(/^\/api\/admin\/videos\/([^\/]+)$/) && method === 'DELETE') {
+                    const videoId = pathname.split('/')[4];
+                    result = await this.adminDeleteVideo(videoId, user);
+                
+                // Статистика
+                } else if (pathname === '/api/stats' && method === 'GET') {
+                    result = await this.getStats();
+                } else if (pathname === '/api/health' && method === 'GET') {
+                    result = { success: true, status: 'ok', timestamp: new Date() };
+                }
+                
+                res.writeHead(result.success ? 200 : 400, {
+                    'Content-Type': 'application/json'
+                });
+                res.end(JSON.stringify(result));
+                
             } catch (error) {
-                this.sendError(res, 'Ошибка парсинга запроса', 400);
+                console.error('API Error:', error);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ 
+                    success: false, 
+                    message: 'Внутренняя ошибка сервера' 
+                }));
             }
         });
     }
     
-    routeAPI(req, res, path, method) {
-        // API маршруты
-        const routes = {
-            'GET': {
-                '/api/auth/me': () => this.getCurrentUser(req, res),
-                '/api/videos': () => this.getVideos(req, res),
-                '/api/stats': () => this.getStats(req, res),
-                '/api/health': () => this.healthCheck(req, res)
-            },
-            'POST': {
-                '/api/auth/register': () => this.register(req, res),
-                '/api/auth/login': () => this.login(req, res),
-                '/api/auth/logout': () => this.logout(req, res),
-                '/api/videos/upload': () => this.uploadVideo(req, res)
-            }
-        };
-        
-        const handler = routes[method]?.[path];
-        if (handler) {
-            handler();
-        } else {
-            this.sendError(res, 'Маршрут не найден', 404);
-        }
-    }
-    
-    sendJSON(res, data, statusCode = 200) {
-        res.writeHead(statusCode, {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache'
-        });
-        res.end(JSON.stringify(data));
-    }
-    
-    sendError(res, message, statusCode = 500) {
-        this.sendJSON(res, {
-            success: false,
-            message,
-            timestamp: Date.now()
-        }, statusCode);
-    }
-    
-    sendSuccess(res, data = {}) {
-        this.sendJSON(res, {
-            success: true,
-            ...data,
-            timestamp: Date.now()
-        });
-    }
-    
-    // API методы
-    register(req, res) {
-        const { email, password, username } = req.body;
+    // ===== АУТЕНТИФИКАЦИЯ =====
+    async register(data) {
+        const { email, password, username } = data;
         
         if (!email || !password || !username) {
-            return this.sendError(res, 'Все поля обязательны', 400);
+            return { success: false, message: 'Все поля обязательны' };
         }
         
-        // Проверка уникальности email
-        for (const userId in this.users) {
-            if (this.users[userId].email === email) {
-                return this.sendError(res, 'Пользователь уже существует', 409);
-            }
+        if (password.length < 6) {
+            return { success: false, message: 'Пароль должен быть не менее 6 символов' };
+        }
+        
+        // Проверка уникальности
+        const existingUser = await this.users.findOne({ 
+            $or: [{ email }, { username }] 
+        });
+        
+        if (existingUser) {
+            return { success: false, message: 'Пользователь уже существует' };
         }
         
         const userId = this.generateId();
         const hashedPassword = this.hashPassword(password);
+        const token = this.createToken(userId);
         
-        this.users[userId] = {
-            id: userId,
+        const user = {
+            _id: userId,
             email,
             username,
             password: hashedPassword,
-            createdAt: Date.now(),
+            token,
+            role: 'user',
             subscribers: 0,
-            avatar: username.charAt(0).toUpperCase()
+            createdAt: new Date(),
+            avatar: `https://ui-avatars.com/api/?name=${username}&background=random`
         };
         
-        this.saveToFile('users.json', this.users);
+        await this.users.insertOne(user);
         
-        const token = this.createToken(userId);
-        const { password: _, ...userWithoutPassword } = this.users[userId];
-        
-        this.sendSuccess(res, {
-            user: userWithoutPassword,
-            token
-        });
+        const { password: _, ...userWithoutPassword } = user;
+        return { 
+            success: true, 
+            user: userWithoutPassword, 
+            token: token.token 
+        };
     }
     
-    login(req, res) {
-        const { email, password } = req.body;
+    async login(data) {
+        const { email, password } = data;
         
         if (!email || !password) {
-            return this.sendError(res, 'Email и пароль обязательны', 400);
+            return { success: false, message: 'Email и пароль обязательны' };
         }
         
         const hashedPassword = this.hashPassword(password);
-        
-        // Поиск пользователя
-        let user = null;
-        let userId = null;
-        
-        for (const id in this.users) {
-            if (this.users[id].email === email && this.users[id].password === hashedPassword) {
-                user = this.users[id];
-                userId = id;
-                break;
-            }
-        }
-        
-        if (!user) {
-            return this.sendError(res, 'Неверный email или пароль', 401);
-        }
-        
-        const token = this.createToken(userId);
-        const { password: _, ...userWithoutPassword } = user;
-        
-        this.sendSuccess(res, {
-            user: userWithoutPassword,
-            token
+        let user = await this.users.findOne({ 
+            email, 
+            password: hashedPassword 
         });
-    }
-    
-    logout(req, res) {
-        const userId = req.userId;
         
-        if (userId && this.users[userId]) {
-            delete this.users[userId].token;
-            delete this.users[userId].tokenExpires;
-            this.saveToFile('users.json', this.users);
-        }
-        
-        this.sendSuccess(res);
-    }
-    
-    getCurrentUser(req, res) {
-        const userId = req.userId;
-        
-        if (!userId) {
-            return this.sendError(res, 'Не авторизован', 401);
-        }
-        
-        const user = this.users[userId];
         if (!user) {
-            return this.sendError(res, 'Пользователь не найден', 404);
+            // Попробуем найти по username
+            user = await this.users.findOne({ 
+                username: email, 
+                password: hashedPassword 
+            });
         }
         
-        const { password, token, tokenExpires, ...userWithoutSensitive } = user;
-        this.sendSuccess(res, { user: userWithoutSensitive });
+        if (!user) {
+            return { success: false, message: 'Неверный email/пароль' };
+        }
+        
+        // Обновляем токен
+        const token = this.createToken(user._id);
+        await this.users.updateOne(
+            { _id: user._id },
+            { $set: { token } }
+        );
+        
+        const { password: _, ...userWithoutPassword } = user;
+        return { 
+            success: true, 
+            user: { ...userWithoutPassword, token }, 
+            token: token.token 
+        };
     }
     
-    getVideos(req, res) {
-        // Демо данные для видео
-        const videos = [
-            {
-                id: '1',
-                title: 'Добро пожаловать в USTube!',
-                channel: { username: 'USTube Team', subscribers: 1000 },
-                views: 1500,
-                likes: 120,
-                dislikes: 5,
-                duration: 120,
-                createdAt: Date.now() - 86400000,
-                description: 'Официальное видео платформы USTube'
-            },
-            {
-                id: '2',
-                title: 'Как создать аккаунт',
-                channel: { username: 'Техподдержка', subscribers: 500 },
-                views: 800,
-                likes: 75,
-                dislikes: 2,
-                duration: 180,
-                createdAt: Date.now() - 172800000,
-                description: 'Пошаговая инструкция регистрации'
+    async logout(user) {
+        if (user) {
+            await this.users.updateOne(
+                { _id: user._id },
+                { $set: { token: null } }
+            );
+        }
+        return { success: true };
+    }
+    
+    // ===== ВИДЕО =====
+    async getVideos(query = {}) {
+        try {
+            const limit = parseInt(query.limit) || 20;
+            const skip = parseInt(query.skip) || 0;
+            
+            let filter = { visibility: 'public' };
+            
+            if (query.search) {
+                filter.$or = [
+                    { title: { $regex: query.search, $options: 'i' } },
+                    { description: { $regex: query.search, $options: 'i' } },
+                    { tags: { $regex: query.search, $options: 'i' } }
+                ];
             }
-        ];
-        
-        this.sendSuccess(res, { videos });
+            
+            if (query.channelId) {
+                filter['channel._id'] = query.channelId;
+            }
+            
+            const videos = await this.videos
+                .find(filter)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .toArray();
+            
+            const total = await this.videos.countDocuments(filter);
+            
+            // Добавляем просмотры
+            for (let video of videos) {
+                video.views = await this.views.countDocuments({ videoId: video._id });
+                video.likes = await this.likes.countDocuments({ 
+                    videoId: video._id, 
+                    type: 'like' 
+                });
+            }
+            
+            return { success: true, videos, total };
+        } catch (error) {
+            console.error('Get videos error:', error);
+            return { success: false, message: 'Ошибка загрузки видео' };
+        }
     }
     
-    uploadVideo(req, res) {
-        const userId = req.userId;
-        
-        if (!userId) {
-            return this.sendError(res, 'Требуется авторизация', 401);
+    async uploadVideo(data, user) {
+        if (!user) {
+            return { success: false, message: 'Требуется авторизация' };
         }
         
-        const { title, description } = req.body;
+        const { title, description, tags, visibility = 'public', duration = 0 } = data;
         
         if (!title) {
-            return this.sendError(res, 'Название видео обязательно', 400);
+            return { success: false, message: 'Название обязательно' };
         }
         
         const videoId = this.generateId();
-        
-        if (!this.videos) this.videos = {};
-        
-        this.videos[videoId] = {
-            id: videoId,
+        const video = {
+            _id: videoId,
             title,
             description: description || '',
-            channelId: userId,
-            views: 0,
-            likes: 0,
-            dislikes: 0,
-            duration: 180,
-            format: 'video',
-            tags: [],
-            visibility: 'public',
-            createdAt: Date.now(),
-            updatedAt: Date.now()
+            channel: {
+                _id: user._id,
+                username: user.username,
+                avatar: user.avatar
+            },
+            duration: parseInt(duration) || 0,
+            tags: tags ? tags.split(',').map(t => t.trim()) : [],
+            visibility,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            // В реальном приложении здесь будет ссылка на видео файл
+            videoUrl: `https://example.com/videos/${videoId}.mp4`,
+            thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
         };
         
-        this.saveToFile('videos.json', this.videos);
+        await this.videos.insertOne(video);
         
-        this.sendSuccess(res, {
-            videoId,
-            message: 'Видео успешно загружено'
-        });
-    }
-    
-    getStats(req, res) {
-        const stats = {
-            totalUsers: Object.keys(this.users).length,
-            totalVideos: Object.keys(this.videos).length,
-            totalComments: Object.keys(this.comments).length,
-            serverUptime: process.uptime(),
-            timestamp: Date.now()
+        return { 
+            success: true, 
+            video,
+            message: 'Видео успешно загружено' 
         };
-        
-        this.sendSuccess(res, { stats });
     }
     
-    healthCheck(req, res) {
-        this.sendSuccess(res, { status: 'ok', timestamp: Date.now() });
-    }
-    
-    start() {
-        const server = http.createServer((req, res) => {
-            const url = new URL(req.url, `http://${req.headers.host}`);
-            
-            if (url.pathname.startsWith('/api/')) {
-                this.handleAPI(req, res, url);
-            } else {
-                this.serveStatic(req, res, url);
+    async getVideo(videoId) {
+        try {
+            const video = await this.videos.findOne({ _id: videoId });
+            if (!video) {
+                return { success: false, message: 'Видео не найдено' };
             }
+            
+            // Увеличиваем просмотры
+            await this.views.insertOne({
+                videoId,
+                viewedAt: new Date(),
+                viewerId: 'anonymous' // В реальном приложении - ID пользователя
+            });
+            
+            video.views = await this.views.countDocuments({ videoId });
+            video.likes = await this.likes.countDocuments({ videoId, type: 'like' });
+            video.dislikes = await this.likes.countDocuments({ videoId, type: 'dislike' });
+            
+            return { success: true, video };
+        } catch (error) {
+            return { success: false, message: 'Ошибка загрузки видео' };
+        }
+    }
+    
+    async updateVideo(videoId, data, user) {
+        if (!user) {
+            return { success: false, message: 'Требуется авторизация' };
+        }
+        
+        const video = await this.videos.findOne({ _id: videoId });
+        if (!video) {
+            return { success: false, message: 'Видео не найдено' };
+        }
+        
+        // Проверяем права
+        if (video.channel._id !== user._id && user.role !== 'admin') {
+            return { success: false, message: 'Нет прав для редактирования' };
+        }
+        
+        await this.videos.updateOne(
+            { _id: videoId },
+            { 
+                $set: { 
+                    ...data,
+                    updatedAt: new Date() 
+                } 
+            }
+        );
+        
+        return { success: true, message: 'Видео обновлено' };
+    }
+    
+    async deleteVideo(videoId, user) {
+        if (!user) {
+            return { success: false, message: 'Требуется авторизация' };
+        }
+        
+        const video = await this.videos.findOne({ _id: videoId });
+        if (!video) {
+            return { success: false, message: 'Видео не найдено' };
+        }
+        
+        // Проверяем права
+        if (video.channel._id !== user._id && user.role !== 'admin') {
+            return { success: false, message: 'Нет прав для удаления' };
+        }
+        
+        await this.videos.deleteOne({ _id: videoId });
+        await this.comments.deleteMany({ videoId });
+        await this.likes.deleteMany({ videoId });
+        await this.views.deleteMany({ videoId });
+        
+        return { success: true, message: 'Видео удалено' };
+    }
+    
+    // ===== КОММЕНТАРИИ =====
+    async getComments(videoId) {
+        try {
+            const comments = await this.comments
+                .find({ videoId })
+                .sort({ createdAt: -1 })
+                .toArray();
+            
+            return { success: true, comments };
+        } catch (error) {
+            return { success: false, message: 'Ошибка загрузки комментариев' };
+        }
+    }
+    
+    async addComment(videoId, data, user) {
+        if (!user) {
+            return { success: false, message: 'Требуется авторизация' };
+        }
+        
+        const { text } = data;
+        if (!text || text.trim().length === 0) {
+            return { success: false, message: 'Комментарий не может быть пустым' };
+        }
+        
+        const commentId = this.generateId();
+        const comment = {
+            _id: commentId,
+            videoId,
+            user: {
+                _id: user._id,
+                username: user.username,
+                avatar: user.avatar
+            },
+            text: text.trim(),
+            likes: 0,
+            createdAt: new Date()
+        };
+        
+        await this.comments.insertOne(comment);
+        
+        return { success: true, comment };
+    }
+    
+    // ===== ЛАЙКИ =====
+    async likeVideo(videoId, user) {
+        if (!user) {
+            return { success: false, message: 'Требуется авторизация' };
+        }
+        
+        // Удаляем предыдущие реакции
+        await this.likes.deleteMany({ 
+            videoId, 
+            userId: user._id 
+        });
+        
+        // Добавляем лайк
+        await this.likes.insertOne({
+            videoId,
+            userId: user._id,
+            type: 'like',
+            createdAt: new Date()
+        });
+        
+        const likes = await this.likes.countDocuments({ videoId, type: 'like' });
+        const dislikes = await this.likes.countDocuments({ videoId, type: 'dislike' });
+        
+        return { 
+            success: true, 
+            likes, 
+            dislikes 
+        };
+    }
+    
+    async dislikeVideo(videoId, user) {
+        if (!user) {
+            return { success: false, message: 'Требуется авторизация' };
+        }
+        
+        await this.likes.deleteMany({ 
+            videoId, 
+            userId: user._id 
+        });
+        
+        await this.likes.insertOne({
+            videoId,
+            userId: user._id,
+            type: 'dislike',
+            createdAt: new Date()
+        });
+        
+        const likes = await this.likes.countDocuments({ videoId, type: 'like' });
+        const dislikes = await this.likes.countDocuments({ videoId, type: 'dislike' });
+        
+        return { 
+            success: true, 
+            likes, 
+            dislikes 
+        };
+    }
+    
+    // ===== ПОДПИСКИ =====
+    async getSubscriptions(user) {
+        if (!user) {
+            return { success: false, message: 'Требуется авторизация' };
+        }
+        
+        const subscriptions = await this.subscriptions
+            .find({ userId: user._id })
+            .toArray();
+        
+        // Получаем информацию о каналах
+        const channelIds = subscriptions.map(s => s.channelId);
+        const channels = await this.users
+            .find({ _id: { $in: channelIds } })
+            .toArray();
+        
+        return { success: true, subscriptions: channels };
+    }
+    
+    async subscribe(channelId, user) {
+        if (!user) {
+            return { success: false, message: 'Требуется авторизация' };
+        }
+        
+        if (user._id === channelId) {
+            return { success: false, message: 'Нельзя подписаться на себя' };
+        }
+        
+        const existing = await this.subscriptions.findOne({
+            userId: user._id,
+            channelId
+        });
+        
+        if (existing) {
+            // Отписываемся
+            await this.subscriptions.deleteOne({ _id: existing._id });
+            await this.users.updateOne(
+                { _id: channelId },
+                { $inc: { subscribers: -1 } }
+            );
+            return { success: true, subscribed: false };
+        } else {
+            // Подписываемся
+            await this.subscriptions.insertOne({
+                userId: user._id,
+                channelId,
+                subscribedAt: new Date()
+            });
+            await this.users.updateOne(
+                { _id: channelId },
+                { $inc: { subscribers: 1 } }
+            );
+            return { success: true, subscribed: true };
+        }
+    }
+    
+    // ===== АДМИН =====
+    async getAdminStats(user) {
+        if (!user || user.role !== 'admin') {
+            return { success: false, message: 'Доступ запрещен' };
+        }
+        
+        const totalUsers = await this.users.countDocuments();
+        const totalVideos = await this.videos.countDocuments();
+        const totalComments = await this.comments.countDocuments();
+        const totalViews = await this.views.countDocuments();
+        
+        // Новые пользователи за последние 7 дней
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const newUsers = await this.users.countDocuments({
+            createdAt: { $gte: weekAgo }
+        });
+        
+        // Популярные видео
+        const popularVideos = await this.videos
+            .find()
+            .sort({ views: -1 })
+            .limit(5)
+            .toArray();
+        
+        return {
+            success: true,
+            stats: {
+                totalUsers,
+                totalVideos,
+                totalComments,
+                totalViews,
+                newUsers,
+                popularVideos
+            }
+        };
+    }
+    
+    async getAdminUsers(user) {
+        if (!user || user.role !== 'admin') {
+            return { success: false, message: 'Доступ запрещен' };
+        }
+        
+        const users = await this.users
+            .find({}, { projection: { password: 0 } })
+            .toArray();
+        
+        return { success: true, users };
+    }
+    
+    async getAdminVideos(user) {
+        if (!user || user.role !== 'admin') {
+            return { success: false, message: 'Доступ запрещен' };
+        }
+        
+        const videos = await this.videos.find().toArray();
+        
+        // Добавляем статистику
+        for (let video of videos) {
+            video.views = await this.views.countDocuments({ videoId: video._id });
+            video.comments = await this.comments.countDocuments({ videoId: video._id });
+        }
+        
+        return { success: true, videos };
+    }
+    
+    async adminDeleteVideo(videoId, user) {
+        if (!user || user.role !== 'admin') {
+            return { success: false, message: 'Доступ запрещен' };
+        }
+        
+        await this.videos.deleteOne({ _id: videoId });
+        await this.comments.deleteMany({ videoId });
+        await this.likes.deleteMany({ videoId });
+        await this.views.deleteMany({ videoId });
+        
+        return { success: true, message: 'Видео удалено администратором' };
+    }
+    
+    // ===== СТАТИСТИКА =====
+    async getStats() {
+        const totalUsers = await this.users.countDocuments();
+        const totalVideos = await this.videos.countDocuments();
+        const totalComments = await this.comments.countDocuments();
+        
+        return {
+            success: true,
+            stats: {
+                totalUsers,
+                totalVideos,
+                totalComments,
+                serverUptime: process.uptime(),
+                timestamp: new Date()
+            }
+        };
+    }
+    
+    startServer() {
+        const server = http.createServer((req, res) => {
+            this.handleRequest(req, res);
         });
         
         server.listen(this.port, () => {
@@ -420,10 +812,14 @@ class USTubeServer {
 ║   🎬 USTube Server запущен!                                 ║
 ║                                                              ║
 ║   🔗 Порт: ${this.port}                                   ║
+║   🗄️  База: MongoDB                                        ║
+║   👑 Админ: admin / 140612                                  ║
 ║                                                              ║
-║   📊 Статистика:                                            ║
-║   👤 Пользователей: ${Object.keys(this.users).length}                          ║
-║   🎥 Видео: ${Object.keys(this.videos).length}                            ║
+║   📊 API Endpoints:                                         ║
+║   • /api/videos - все видео                                ║
+║   • /api/auth/login - вход                                 ║
+║   • /api/auth/register - регистрация                       ║
+║   • /api/admin - админ-панель                              ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
             `);
