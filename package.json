@@ -1,19 +1,11 @@
 {
   "name": "ustube",
   "version": "3.0.0",
-  "description": "Полноценный YouTube клон с работающим сервером",
-  "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "deploy": "node server.js"
+    "start": "node server.js"
   },
-  "keywords": ["youtube", "clone", "video", "platform", "ustube"],
-  "author": "USTube Team",
-  "license": "MIT",
   "engines": {
-    "node": ">=14.0.0"
-  },
-  "dependencies": {},
-  "devDependencies": {}
+    "node": ">=18.0.0"
+  }
 }
