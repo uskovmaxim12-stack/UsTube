@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USTube - Видеохостинг</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-btn" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="/" class="logo">
+                <i class="fab fa-youtube"></i>
+                <span>USTube</span>
+            </a>
+        </div>
+        
+        <div class="search-container">
+            <form id="searchForm" class="search-form">
+                <input type="text" id="searchInput" placeholder="Поиск..." class="search-input">
+                <button type="submit" class="search-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+            <button class="voice-search" title="Голосовой поиск">
+                <i class="fas fa-microphone"></i>
+            </button>
+        </div>
+        
+        <div class="header-right">
+            <button class="header-btn upload-btn" onclick="openUpload()">
+                <i class="fas fa-video"></i>
+                <span>Создать</span>
+            </button>
+            <button class="header-btn" onclick="toggleNotifications()">
+                <i class="fas fa-bell"></i>
+                <span class="badge" id="notificationBadge">0</span>
+            </button>
+            <button class="header-btn" onclick="toggleTheme()">
+                <i class="fas fa-moon" id="themeIcon"></i>
+            </button>
+            <div class="user-dropdown">
+                <button class="user-btn" onclick="toggleUserMenu()">
+                    <div class="user-avatar" id="userAvatar">?</div>
+                </button>
+                <div class="dropdown-menu" id="userMenu">
+                    <div class="user-info" id="userInfo">
+                        <div class="user-name">Гость</div>
+                        <div class="user-email">Войдите в аккаунт</div>
+                    </div>
+                    <div class="divider"></div>
+                    <a href="#" class="dropdown-item" onclick="openStudio()">
+                        <i class="fas fa-tv"></i> Творческая студия
+                    </a>
+                    <a href="#" class="dropdown-item" onclick="openSettings()">
+                        <i class="fas fa-cog"></i> Настройки
+                    </a>
+                    <div class="divider"></div>
+                    <a href="#" class="dropdown-item" id="loginBtn" onclick="openLogin()">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </a>
+                    <a href="#" class="dropdown-item" id="logoutBtn" onclick="logout()" style="display: none;">
+                        <i class="fas fa-sign-out-alt"></i> Выйти
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-section">
+            <a href="/" class="sidebar-item active">
+                <i class="fas fa-home"></i>
+                <span>Главная</span>
+            </a>
+            <a href="#shorts" class="sidebar-item">
+                <i class="fas fa-play-circle"></i>
+                <span>Shorts</span>
+            </a>
+            <a href="#subscriptions" class="sidebar-item">
+                <i class="fas fa-newspaper"></i>
+                <span>Подписки</span>
+            </a>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="section-title">Вы</div>
+            <a href="#library" class="sidebar-item">
+                <i class="fas fa-book"></i>
+                <span>Библиотека</span>
+            </a>
+            <a href="#history" class="sidebar-item">
+                <i class="fas fa-history"></i>
+                <span>История</span>
+            </a>
+            <a href="#watch-later" class="sidebar-item">
+                <i class="fas fa-clock"></i>
+                <span>Смотреть позже</span>
+            </a>
+            <a href="#liked" class="sidebar-item">
+                <i class="fas fa-thumbs-up"></i>
+                <span>Понравившиеся</span>
+            </a>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="section-title">Подписки</div>
+            <div id="subscriptionsList" class="subscriptions-list">
+                <div class="empty">Нет подписок</div>
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="section-title">Больше от USTube</div>
+            <a href="#music" class="sidebar-item">
+                <i class="fas fa-music"></i>
+                <span>Музыка</span>
+            </a>
+            <a href="#gaming" class="sidebar-item">
+                <i class="fas fa-gamepad"></i>
+                <span>Игры</span>
+            </a>
+            <a href="#sports" class="sidebar-item">
+                <i class="fas fa-football-ball"></i>
+                <span>Спорт</span>
+            </a>
+            <a href="#learning" class="sidebar-item">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Обучение</span>
+            </a>
+        </div>
+        
+        <div class="sidebar-footer">
+            <a href="/admin.html" target="_blank" class="admin-btn">
+                <i class="fas fa-shield-alt"></i>
+                <span>Админ-панель</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1>Добро пожаловать в USTube</h1>
+                <p>Смотрите лучшие видео со всего мира. Создавайте. Делитесь.</p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <i class="fas fa-video"></i>
+                        <span id="totalVideos">0</span> видео
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-users"></i>
+                        <span id="totalUsers">0</span> пользователей
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-eye"></i>
+                        <span id="totalViews">0</span> просмотров
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Categories -->
+        <div class="categories">
+            <button class="category-btn active" onclick="filterVideos('all')">Все</button>
+            <button class="category-btn" onclick="filterVideos('music')">Музыка</button>
+            <button class="category-btn" onclick="filterVideos('gaming')">Игры</button>
+            <button class="category-btn" onclick="filterVideos('education')">Обучение</button>
+            <button class="category-btn" onclick="filterVideos('comedy')">Юмор</button>
+            <button class="category-btn" onclick="filterVideos('sports')">Спорт</button>
+            <button class="category-btn" onclick="filterVideos('news')">Новости</button>
+        </div>
+
+        <!-- Videos Grid -->
+        <div class="videos-grid" id="videosGrid">
+            <!-- Видео загружаются динамически -->
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Загрузка видео...</p>
+        </div>
+
+        <!-- Load More -->
+        <div class="load-more" id="loadMore" style="display: none;">
+            <button class="load-more-btn" onclick="loadMoreVideos()">
+                <i class="fas fa-sync-alt"></i> Загрузить еще
+            </button>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Вход в USTube</h2>
+                <button class="modal-close" onclick="closeModal('loginModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="switchAuthTab('login')">Вход</button>
+                    <button class="auth-tab" onclick="switchAuthTab('register')">Регистрация</button>
+                </div>
+                
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Пароль</label>
+                        <input type="password" id="loginPassword" placeholder="Введите пароль" required>
+                        <button type="button" class="show-password" onclick="togglePassword('loginPassword')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="form-error" id="loginError"></div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </button>
+                </form>
+                
+                <form id="registerForm" class="auth-form" style="display: none;">
+                    <div class="form-group">
+                        <label>Имя пользователя</label>
+                        <input type="text" id="registerUsername" placeholder="Ваше имя" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="registerEmail" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Пароль</label>
+                        <input type="password" id="registerPassword" placeholder="Не менее 6 символов" required>
+                        <button type="button" class="show-password" onclick="togglePassword('registerPassword')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="form-error" id="registerError"></div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-user-plus"></i> Зарегистрироваться
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="uploadModal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h2>Загрузить видео</h2>
+                <button class="modal-close" onclick="closeModal('uploadModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-steps">
+                    <div class="step active">
+                        <div class="step-number">1</div>
+                        <div class="step-title">Файл</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-title">Детали</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-title">Настройки</div>
+                    </div>
+                </div>
+                
+                <div class="upload-form">
+                    <div class="upload-step active" id="step1">
+                        <div class="upload-area" onclick="document.getElementById('videoFile').click()">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h3>Выберите видео файл</h3>
+                            <p>Перетащите или нажмите для загрузки</p>
+                            <input type="file" id="videoFile" accept="video/*" style="display: none;">
+                        </div>
+                        <div class="file-info" id="fileInfo"></div>
+                    </div>
+                    
+                    <div class="upload-step" id="step2">
+                        <div class="form-group">
+                            <label>Название видео</label>
+                            <input type="text" id="videoTitle" placeholder="Введите название">
+                        </div>
+                        <div class="form-group">
+                            <label>Описание</label>
+                            <textarea id="videoDescription" rows="4" placeholder="Опишите ваше видео"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Категория</label>
+                            <select id="videoCategory">
+                                <option value="entertainment">Развлечения</option>
+                                <option value="music">Музыка</option>
+                                <option value="gaming">Игры</option>
+                                <option value="education">Обучение</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-step" id="step3">
+                        <div class="form-group">
+                            <label>Видимость</label>
+                            <div class="radio-group">
+                                <label>
+                                    <input type="radio" name="visibility" value="public" checked>
+                                    <i class="fas fa-globe"></i> Публичное
+                                </label>
+                                <label>
+                                    <input type="radio" name="visibility" value="unlisted">
+                                    <i class="fas fa-link"></i> Ссылочное
+                                </label>
+                                <label>
+                                    <input type="radio" name="visibility" value="private">
+                                    <i class="fas fa-lock"></i> Приватное
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="upload-actions">
+                    <button class="btn btn-secondary" id="prevStep" disabled>
+                        <i class="fas fa-arrow-left"></i> Назад
+                    </button>
+                    <button class="btn btn-primary" id="nextStep">
+                        Далее <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button class="btn btn-success" id="uploadBtn" style="display: none;">
+                        <i class="fas fa-upload"></i> Загрузить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="videoModal">
+        <div class="modal-content extra-large">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeModal('videoModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="video-container" id="videoContainer"></div>
+                <div class="video-details">
+                    <h1 id="videoModalTitle"></h1>
+                    <div class="video-stats">
+                        <span id="videoViews">0 просмотров</span>
+                        <span>•</span>
+                        <span id="videoDate">Сегодня</span>
+                    </div>
+                    <div class="video-actions">
+                        <button class="action-btn like-btn" onclick="likeVideo()">
+                            <i class="fas fa-thumbs-up"></i>
+                            <span id="likeCount">0</span>
+                        </button>
+                        <button class="action-btn dislike-btn" onclick="dislikeVideo()">
+                            <i class="fas fa-thumbs-down"></i>
+                            <span id="dislikeCount">0</span>
+                        </button>
+                        <button class="action-btn" onclick="shareVideo()">
+                            <i class="fas fa-share"></i> Поделиться
+                        </button>
+                        <button class="action-btn" onclick="saveVideo()">
+                            <i class="fas fa-plus"></i> Сохранить
+                        </button>
+                    </div>
+                    <div class="channel-info">
+                        <div class="channel-avatar" id="channelAvatar"></div>
+                        <div class="channel-details">
+                            <h3 id="channelName"></h3>
+                            <p id="channelSubs">0 подписчиков</p>
+                        </div>
+                        <button class="subscribe-btn" id="subscribeBtn" onclick="toggleSubscribe()">
+                            Подписаться
+                        </button>
+                    </div>
+                    <div class="video-description">
+                        <p id="videoDescriptionText"></p>
+                    </div>
+                </div>
+                
+                <!-- Комментарии -->
+                <div class="comments-section">
+                    <h3>Комментарии</h3>
+                    <div class="comment-form">
+                        <div class="comment-avatar" id="commentAvatar">?</div>
+                        <input type="text" id="commentInput" placeholder="Добавить комментарий...">
+                        <button id="submitComment" disabled onclick="addComment()">
+                            Комментировать
+                        </button>
+                    </div>
+                    <div class="comments-list" id="commentsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/script.js"></script>
+</body>
+</html>
