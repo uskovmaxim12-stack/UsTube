@@ -1,0 +1,2621 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UsTube - Видеохостинг нового поколения</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>▶️</text></svg>">
+    
+    <!-- Шрифт Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* ===== YOUTUBE STYLE VARIABLES ===== */
+        :root {
+            --yt-red: #FF0000;
+            --yt-dark-red: #CC0000;
+            --yt-blue: #065FD4;
+            --yt-dark: #0F0F0F;
+            --yt-dark-gray: #272727;
+            --yt-medium-gray: #3F3F3F;
+            --yt-light-gray: #AAAAAA;
+            --yt-white: #FFFFFF;
+            --yt-black: #000000;
+            --yt-text-primary: #F1F1F1;
+            --yt-text-secondary: #AAAAAA;
+            --yt-hover: #272727;
+            --yt-active: #3F3F3F;
+            
+            --header-height: 56px;
+            --sidebar-width: 240px;
+            --mini-sidebar-width: 72px;
+        }
+        
+        [data-theme="light"] {
+            --yt-dark: #FFFFFF;
+            --yt-dark-gray: #F1F1F1;
+            --yt-medium-gray: #E1E1E1;
+            --yt-light-gray: #606060;
+            --yt-text-primary: #030303;
+            --yt-text-secondary: #606060;
+            --yt-hover: #F1F1F1;
+            --yt-active: #E1E1E1;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: var(--yt-dark);
+            color: var(--yt-text-primary);
+            font-size: 14px;
+            line-height: 1.4;
+            overflow-x: hidden;
+        }
+        
+        /* ===== YOUTUBE HEADER ===== */
+        .yt-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: var(--yt-dark);
+            border-bottom: 1px solid var(--yt-medium-gray);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            z-index: 1000;
+        }
+        
+        .yt-header-left {
+            display: flex;
+            align-items: center;
+            min-width: 179px;
+        }
+        
+        .yt-menu-btn {
+            width: 40px;
+            height: 40px;
+            background: none;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-right: 16px;
+            color: var(--yt-text-primary);
+        }
+        
+        .yt-menu-btn:hover {
+            background: var(--yt-hover);
+        }
+        
+        .yt-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+        
+        .yt-logo-icon {
+            color: var(--yt-red);
+            font-size: 28px;
+            margin-right: 4px;
+        }
+        
+        .yt-logo-text {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--yt-text-primary);
+            letter-spacing: -1px;
+        }
+        
+        /* Search Bar */
+        .yt-search-container {
+            flex: 1;
+            max-width: 732px;
+            margin: 0 40px;
+            display: flex;
+        }
+        
+        .yt-search-form {
+            flex: 1;
+            display: flex;
+        }
+        
+        .yt-search-input {
+            flex: 1;
+            height: 40px;
+            padding: 0 16px;
+            background: var(--yt-dark);
+            border: 1px solid var(--yt-medium-gray);
+            border-right: none;
+            border-radius: 40px 0 0 40px;
+            color: var(--yt-text-primary);
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .yt-search-input:focus {
+            border-color: var(--yt-blue);
+        }
+        
+        .yt-search-btn {
+            width: 64px;
+            height: 40px;
+            background: var(--yt-dark-gray);
+            border: 1px solid var(--yt-medium-gray);
+            border-left: none;
+            border-radius: 0 40px 40px 0;
+            cursor: pointer;
+            color: var(--yt-text-secondary);
+        }
+        
+        .yt-search-btn:hover {
+            background: var(--yt-hover);
+        }
+        
+        .yt-voice-search {
+            width: 40px;
+            height: 40px;
+            background: var(--yt-dark-gray);
+            border: none;
+            border-radius: 50%;
+            margin-left: 16px;
+            cursor: pointer;
+            color: var(--yt-text-secondary);
+        }
+        
+        /* Header Right */
+        .yt-header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 225px;
+            justify-content: flex-end;
+        }
+        
+        .yt-header-icon {
+            width: 40px;
+            height: 40px;
+            background: none;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--yt-text-primary);
+            position: relative;
+        }
+        
+        .yt-header-icon:hover {
+            background: var(--yt-hover);
+        }
+        
+        .yt-notification-badge {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: var(--yt-red);
+            color: white;
+            font-size: 10px;
+            padding: 2px 4px;
+            border-radius: 10px;
+            min-width: 14px;
+            text-align: center;
+        }
+        
+        .yt-user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--yt-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            margin-left: 8px;
+            cursor: pointer;
+        }
+        
+        /* ===== YOUTUBE SIDEBAR ===== */
+        .yt-sidebar {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--yt-dark);
+            overflow-y: auto;
+            padding: 12px 0;
+            border-right: 1px solid var(--yt-medium-gray);
+            z-index: 999;
+            transition: width 0.3s ease;
+        }
+        
+        .yt-sidebar.mini {
+            width: var(--mini-sidebar-width);
+        }
+        
+        .yt-sidebar-section {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--yt-medium-gray);
+        }
+        
+        .yt-sidebar-item {
+            display: flex;
+            align-items: center;
+            height: 40px;
+            padding: 0 24px;
+            color: var(--yt-text-primary);
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .yt-sidebar-item:hover {
+            background: var(--yt-hover);
+        }
+        
+        .yt-sidebar-item.active {
+            background: var(--yt-active);
+            font-weight: 500;
+        }
+        
+        .yt-sidebar-item.active .yt-sidebar-icon {
+            color: var(--yt-red);
+        }
+        
+        .yt-sidebar-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--yt-text-primary);
+        }
+        
+        .yt-sidebar.mini .yt-sidebar-icon {
+            margin-right: 0;
+        }
+        
+        .yt-sidebar.mini .yt-sidebar-text {
+            display: none;
+        }
+        
+        .yt-sidebar-title {
+            font-size: 16px;
+            font-weight: 500;
+            padding: 8px 24px;
+            color: var(--yt-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .yt-sidebar.mini .yt-sidebar-title {
+            display: none;
+        }
+        
+        /* ===== MAIN CONTENT ===== */
+        .yt-main {
+            margin-left: var(--sidebar-width);
+            margin-top: var(--header-height);
+            padding: 24px;
+            transition: margin-left 0.3s ease;
+            min-height: calc(100vh - var(--header-height));
+        }
+        
+        .yt-main.mini-sidebar {
+            margin-left: var(--mini-sidebar-width);
+        }
+        
+        /* ===== VIDEO GRID ===== */
+        .yt-video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px 16px;
+            margin-top: 24px;
+        }
+        
+        .yt-video-card {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .yt-video-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .yt-video-thumbnail {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: var(--yt-dark-gray);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        
+        .yt-video-duration {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .yt-video-info {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .yt-channel-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--yt-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        
+        .yt-video-details {
+            flex: 1;
+        }
+        
+        .yt-video-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--yt-text-primary);
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .yt-channel-name {
+            font-size: 14px;
+            color: var(--yt-text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        .yt-video-stats {
+            font-size: 14px;
+            color: var(--yt-text-secondary);
+        }
+        
+        /* ===== PLAYER PAGE ===== */
+        .yt-player-page {
+            display: flex;
+            gap: 24px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        .yt-player-container {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .yt-player {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: var(--yt-black);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        
+        .yt-player-sidebar {
+            width: 400px;
+            flex-shrink: 0;
+        }
+        
+        .yt-video-meta {
+            padding: 16px 0;
+        }
+        
+        .yt-video-title-large {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        
+        .yt-video-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--yt-medium-gray);
+        }
+        
+        .yt-video-stats-large {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        
+        .yt-video-views {
+            font-weight: 500;
+        }
+        
+        .yt-action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .yt-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--yt-dark-gray);
+            border: none;
+            border-radius: 20px;
+            color: var(--yt-text-primary);
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .yt-action-btn:hover {
+            background: var(--yt-hover);
+        }
+        
+        .yt-action-btn.liked {
+            color: var(--yt-blue);
+        }
+        
+        .yt-channel-info-large {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--yt-medium-gray);
+        }
+        
+        .yt-channel-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .yt-channel-avatar-large {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--yt-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            font-size: 20px;
+        }
+        
+        .yt-channel-details h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .yt-channel-subs {
+            font-size: 13px;
+            color: var(--yt-text-secondary);
+        }
+        
+        .yt-subscribe-btn {
+            padding: 10px 24px;
+            background: var(--yt-red);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .yt-subscribe-btn:hover {
+            background: var(--yt-dark-red);
+        }
+        
+        .yt-subscribe-btn.subscribed {
+            background: var(--yt-dark-gray);
+            color: var(--yt-text-primary);
+        }
+        
+        /* ===== COMMENTS ===== */
+        .yt-comments {
+            margin-top: 24px;
+        }
+        
+        .yt-comments-header {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+        
+        .yt-comments-count {
+            font-weight: 500;
+        }
+        
+        .yt-comment-sort {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--yt-text-secondary);
+            cursor: pointer;
+        }
+        
+        .yt-add-comment {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .yt-comment-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--yt-medium-gray);
+            color: var(--yt-text-primary);
+            padding: 8px 0;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .yt-comment-input:focus {
+            border-bottom-color: var(--yt-blue);
+        }
+        
+        .yt-comment {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .yt-comment-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--yt-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        
+        .yt-comment-content {
+            flex: 1;
+        }
+        
+        .yt-comment-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .yt-comment-author {
+            font-weight: 500;
+            font-size: 13px;
+        }
+        
+        .yt-comment-time {
+            font-size: 12px;
+            color: var(--yt-text-secondary);
+        }
+        
+        .yt-comment-text {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        
+        .yt-comment-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .yt-comment-action {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--yt-text-secondary);
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 13px;
+        }
+        
+        .yt-comment-action:hover {
+            color: var(--yt-text-primary);
+        }
+        
+        /* ===== RECOMMENDED VIDEOS ===== */
+        .yt-recommended-video {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            cursor: pointer;
+        }
+        
+        .yt-recommended-thumb {
+            width: 168px;
+            height: 94px;
+            border-radius: 8px;
+            background: var(--yt-dark-gray);
+            flex-shrink: 0;
+            position: relative;
+        }
+        
+        .yt-recommended-duration {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        
+        .yt-recommended-info {
+            flex: 1;
+        }
+        
+        .yt-recommended-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .yt-recommended-channel {
+            font-size: 12px;
+            color: var(--yt-text-secondary);
+            margin-bottom: 4px;
+        }
+        
+        .yt-recommended-stats {
+            font-size: 12px;
+            color: var(--yt-text-secondary);
+        }
+        
+        /* ===== CREATOR STUDIO ===== */
+        .yt-studio {
+            display: flex;
+            min-height: calc(100vh - var(--header-height));
+        }
+        
+        .yt-studio-sidebar {
+            width: 240px;
+            background: var(--yt-dark-gray);
+            border-right: 1px solid var(--yt-medium-gray);
+            padding: 24px 0;
+        }
+        
+        .yt-studio-main {
+            flex: 1;
+            padding: 24px;
+        }
+        
+        .yt-studio-header {
+            margin-bottom: 32px;
+        }
+        
+        .yt-studio-title {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .yt-studio-subtitle {
+            color: var(--yt-text-secondary);
+        }
+        
+        .yt-studio-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .yt-studio-stat {
+            background: var(--yt-dark-gray);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .yt-studio-stat-value {
+            font-size: 28px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: var(--yt-red);
+        }
+        
+        .yt-studio-stat-label {
+            color: var(--yt-text-secondary);
+            font-size: 14px;
+        }
+        
+        /* ===== UPLOAD MODAL ===== */
+        .yt-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .yt-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .yt-modal-content {
+            background: var(--yt-dark);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .yt-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .yt-modal-title {
+            font-size: 20px;
+            font-weight: 500;
+        }
+        
+        .yt-modal-close {
+            background: none;
+            border: none;
+            color: var(--yt-text-primary);
+            font-size: 24px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .yt-modal-close:hover {
+            background: var(--yt-hover);
+        }
+        
+        .yt-upload-area {
+            border: 2px dashed var(--yt-medium-gray);
+            border-radius: 12px;
+            padding: 60px 40px;
+            text-align: center;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        .yt-upload-area:hover {
+            border-color: var(--yt-red);
+        }
+        
+        .yt-upload-icon {
+            font-size: 48px;
+            color: var(--yt-red);
+            margin-bottom: 16px;
+        }
+        
+        /* ===== LOGIN/REGISTER ===== */
+        .yt-auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - var(--header-height));
+            padding: 40px 20px;
+        }
+        
+        .yt-auth-box {
+            background: var(--yt-dark-gray);
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .yt-auth-title {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .yt-auth-subtitle {
+            color: var(--yt-text-secondary);
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        .yt-auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .yt-auth-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--yt-dark);
+            border: 1px solid var(--yt-medium-gray);
+            border-radius: 8px;
+            color: var(--yt-text-primary);
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .yt-auth-input:focus {
+            border-color: var(--yt-blue);
+        }
+        
+        .yt-auth-btn {
+            padding: 12px;
+            background: var(--yt-red);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .yt-auth-btn:hover {
+            background: var(--yt-dark-red);
+        }
+        
+        .yt-auth-link {
+            text-align: center;
+            color: var(--yt-text-secondary);
+            margin-top: 20px;
+        }
+        
+        .yt-auth-link a {
+            color: var(--yt-blue);
+            text-decoration: none;
+        }
+        
+        /* ===== CATEGORY TAGS ===== */
+        .yt-tags {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .yt-tag {
+            padding: 8px 16px;
+            background: var(--yt-dark-gray);
+            border-radius: 20px;
+            font-size: 14px;
+            color: var(--yt-text-primary);
+            cursor: pointer;
+            white-space: nowrap;
+            border: none;
+        }
+        
+        .yt-tag:hover {
+            background: var(--yt-hover);
+        }
+        
+        .yt-tag.active {
+            background: var(--yt-text-primary);
+            color: var(--yt-dark);
+        }
+        
+        /* ===== EMPTY STATE ===== */
+        .yt-empty-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+        
+        .yt-empty-icon {
+            font-size: 64px;
+            color: var(--yt-text-secondary);
+            margin-bottom: 24px;
+        }
+        
+        .yt-empty-title {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+        
+        .yt-empty-text {
+            color: var(--yt-text-secondary);
+            margin-bottom: 32px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* ===== UTILITIES ===== */
+        .yt-btn {
+            padding: 10px 24px;
+            background: var(--yt-red);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .yt-btn:hover {
+            background: var(--yt-dark-red);
+        }
+        
+        .yt-btn.secondary {
+            background: var(--yt-dark-gray);
+            color: var(--yt-text-primary);
+        }
+        
+        .yt-btn.secondary:hover {
+            background: var(--yt-hover);
+        }
+        
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1312px) {
+            .yt-player-page {
+                flex-direction: column;
+            }
+            
+            .yt-player-sidebar {
+                width: 100%;
+                margin-top: 24px;
+            }
+        }
+        
+        @media (max-width: 1024px) {
+            .yt-sidebar {
+                display: none;
+            }
+            
+            .yt-main {
+                margin-left: 0;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .yt-search-container {
+                display: none;
+            }
+            
+            .yt-video-grid {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            }
+            
+            .yt-header-left {
+                min-width: auto;
+            }
+            
+            .yt-header-right {
+                min-width: auto;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .yt-video-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .yt-main {
+                padding: 16px;
+            }
+            
+            .yt-action-buttons {
+                flex-wrap: wrap;
+            }
+        }
+        
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .yt-fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+        
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--yt-dark);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--yt-medium-gray);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--yt-light-gray);
+        }
+    </style>
+</head>
+<body>
+    <!-- YouTube Header -->
+    <header class="yt-header">
+        <div class="yt-header-left">
+            <button class="yt-menu-btn" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="/" class="yt-logo">
+                <div class="yt-logo-icon">
+                    <i class="fab fa-youtube"></i>
+                </div>
+                <div class="yt-logo-text">UsTube</div>
+            </a>
+        </div>
+        
+        <div class="yt-search-container">
+            <form class="yt-search-form" id="searchForm">
+                <input type="text" class="yt-search-input" placeholder="Поиск" id="searchInput">
+                <button type="submit" class="yt-search-btn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+            <button class="yt-voice-search" title="Голосовой поиск">
+                <i class="fas fa-microphone"></i>
+            </button>
+        </div>
+        
+        <div class="yt-header-right">
+            <button class="yt-header-icon" id="createVideoBtn" title="Создать">
+                <i class="fas fa-video"></i>
+            </button>
+            <button class="yt-header-icon" id="themeToggle" title="Сменить тему">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="yt-user-avatar" id="userAvatar">
+                <i class="fas fa-user"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- YouTube Sidebar -->
+    <nav class="yt-sidebar" id="sidebar">
+        <div class="yt-sidebar-section">
+            <a href="#" class="yt-sidebar-item active" data-page="home">
+                <div class="yt-sidebar-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <div class="yt-sidebar-text">Главная</div>
+            </a>
+            <a href="#" class="yt-sidebar-item" data-page="shorts">
+                <div class="yt-sidebar-icon">
+                    <i class="fas fa-play-circle"></i>
+                </div>
+                <div class="yt-sidebar-text">Shorts</div>
+            </a>
+            <a href="#" class="yt-sidebar-item" data-page="subscriptions">
+                <div class="yt-sidebar-icon">
+                    <i class="fas fa-newspaper"></i>
+                </div>
+                <div class="yt-sidebar-text">Подписки</div>
+            </a>
+        </div>
+        
+        <div class="yt-sidebar-section">
+            <div class="yt-sidebar-title">Вы</div>
+            <a href="#" class="yt-sidebar-item" data-page="studio">
+                <div class="yt-sidebar-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="yt-sidebar-text">Ваш канал</div>
+            </a>
+            <a href="#" class="yt-sidebar-item" data-page="history">
+                <div class="yt-sidebar-icon">
+                    <i class="fas fa-history"></i>
+                </div>
+                <div class="yt-sidebar-text">История</div>
+            </a>
+            <a href="#" class="yt-sidebar-item" data-page="playlists">
+                <div class="yt-sidebar-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="yt-sidebar-text">Смотреть позже</div>
+            </a>
+            <a href="#" class="yt-sidebar-item" data-page="liked">
+                <div class="yt-sidebar-icon">
+                    <i class="fas fa-thumbs-up"></i>
+                </div>
+                <div class="yt-sidebar-text">Понравившиеся</div>
+            </a>
+        </div>
+        
+        <div class="yt-sidebar-section">
+            <div class="yt-sidebar-title">Подписки</div>
+            <div id="subscriptionsList">
+                <!-- Подписки загружаются через JS -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="yt-main" id="mainContent">
+        <!-- Главная страница -->
+        <div id="homePage" class="yt-page">
+            <div class="yt-tags">
+                <button class="yt-tag active" data-category="all">Все</button>
+                <button class="yt-tag" data-category="music">Музыка</button>
+                <button class="yt-tag" data-category="gaming">Игры</button>
+                <button class="yt-tag" data-category="technology">Технологии</button>
+                <button class="yt-tag" data-category="education">Обучение</button>
+                <button class="yt-tag" data-category="sports">Спорт</button>
+                <button class="yt-tag" data-category="comedy">Юмор</button>
+                <button class="yt-tag" data-category="news">Новости</button>
+            </div>
+            
+            <div class="yt-video-grid" id="videoGrid">
+                <!-- Видео загружаются через JS -->
+            </div>
+            
+            <div id="emptyVideos" class="yt-empty-state" style="display: none;">
+                <div class="yt-empty-icon">
+                    <i class="fas fa-video-slash"></i>
+                </div>
+                <h3 class="yt-empty-title">Пока нет видео</h3>
+                <p class="yt-empty-text">Будьте первым, кто загрузит видео на UsTube!</p>
+                <button class="yt-btn" id="uploadFirstVideoBtn">
+                    <i class="fas fa-upload"></i> Загрузить первое видео
+                </button>
+            </div>
+        </div>
+        
+        <!-- Страница просмотра видео -->
+        <div id="watchPage" class="yt-page" style="display: none;">
+            <div class="yt-player-page">
+                <div class="yt-player-container">
+                    <div class="yt-player" id="videoPlayer">
+                        <!-- Видео плеер -->
+                        <div id="playerContent" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000;">
+                            <div style="text-align: center; color: white;">
+                                <i class="fas fa-play-circle" style="font-size: 64px; margin-bottom: 16px;"></i>
+                                <div style="font-size: 18px;">UsTube Video Player</div>
+                                <div style="font-size: 14px; color: #aaa; margin-top: 8px;">ID: <span id="currentVideoId"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="yt-video-meta">
+                        <h1 class="yt-video-title-large" id="videoTitle"></h1>
+                        
+                        <div class="yt-video-actions">
+                            <div class="yt-video-stats-large">
+                                <span class="yt-video-views" id="videoViews">0 просмотров</span>
+                                <span class="yt-video-time" id="videoTime"></span>
+                            </div>
+                            
+                            <div class="yt-action-buttons">
+                                <button class="yt-action-btn" id="likeBtn">
+                                    <i class="fas fa-thumbs-up"></i>
+                                    <span id="likeCount">0</span>
+                                </button>
+                                <button class="yt-action-btn" id="dislikeBtn">
+                                    <i class="fas fa-thumbs-down"></i>
+                                    <span id="dislikeCount">0</span>
+                                </button>
+                                <button class="yt-action-btn" id="shareBtn">
+                                    <i class="fas fa-share"></i>
+                                    <span>Поделиться</span>
+                                </button>
+                                <button class="yt-action-btn" id="saveBtn">
+                                    <i class="fas fa-plus"></i>
+                                    <span>Сохранить</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="yt-channel-info-large">
+                            <div class="yt-channel-left">
+                                <div class="yt-channel-avatar-large" id="channelAvatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="yt-channel-details">
+                                    <h3 id="channelName">Загрузка...</h3>
+                                    <div class="yt-channel-subs" id="channelSubs">0 подписчиков</div>
+                                </div>
+                            </div>
+                            <button class="yt-subscribe-btn" id="subscribeBtn">Подписаться</button>
+                        </div>
+                        
+                        <div class="yt-video-description" id="videoDescription" style="margin-top: 16px;">
+                            <!-- Описание загружается через JS -->
+                        </div>
+                    </div>
+                    
+                    <!-- Комментарии -->
+                    <div class="yt-comments">
+                        <div class="yt-comments-header">
+                            <div class="yt-comments-count" id="commentsCount">0 комментариев</div>
+                            <div class="yt-comment-sort">
+                                <i class="fas fa-sort-amount-down"></i>
+                                <span>Сначала новые</span>
+                            </div>
+                        </div>
+                        
+                        <div class="yt-add-comment" id="commentFormContainer" style="display: none;">
+                            <div class="yt-comment-avatar" id="currentUserAvatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <input type="text" class="yt-comment-input" placeholder="Добавить комментарий..." id="commentInput">
+                        </div>
+                        
+                        <div id="commentsContainer">
+                            <!-- Комментарии загружаются через JS -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Рекомендованные видео -->
+                <div class="yt-player-sidebar">
+                    <div class="yt-section-title">Рекомендуемые</div>
+                    <div id="recommendedVideos">
+                        <!-- Рекомендации загружаются через JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Студия создателя -->
+        <div id="studioPage" class="yt-page" style="display: none;">
+            <div class="yt-studio">
+                <div class="yt-studio-sidebar">
+                    <a href="#" class="yt-sidebar-item active" data-studio-tab="dashboard">
+                        <div class="yt-sidebar-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="yt-sidebar-text">Дашборд</div>
+                    </a>
+                    <a href="#" class="yt-sidebar-item" data-studio-tab="content">
+                        <div class="yt-sidebar-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div class="yt-sidebar-text">Контент</div>
+                    </a>
+                    <a href="#" class="yt-sidebar-item" data-studio-tab="analytics">
+                        <div class="yt-sidebar-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="yt-sidebar-text">Аналитика</div>
+                    </a>
+                    <a href="#" class="yt-sidebar-item" data-studio-tab="monetization">
+                        <div class="yt-sidebar-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="yt-sidebar-text">Монетизация</div>
+                    </a>
+                    <a href="#" class="yt-sidebar-item" data-studio-tab="comments">
+                        <div class="yt-sidebar-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="yt-sidebar-text">Комментарии</div>
+                    </a>
+                </div>
+                
+                <div class="yt-studio-main">
+                    <div class="yt-studio-header">
+                        <h1 class="yt-studio-title" id="studioChannelName">Творческая студия</h1>
+                        <p class="yt-studio-subtitle">Управляйте своим каналом и контентом</p>
+                    </div>
+                    
+                    <!-- Дашборд -->
+                    <div id="studioDashboard" class="studio-tab active">
+                        <div class="yt-studio-stats">
+                            <div class="yt-studio-stat">
+                                <div class="yt-studio-stat-value" id="studioViews">0</div>
+                                <div class="yt-studio-stat-label">Просмотры за 28 дней</div>
+                            </div>
+                            <div class="yt-studio-stat">
+                                <div class="yt-studio-stat-value" id="studioSubs">0</div>
+                                <div class="yt-studio-stat-label">Подписчики</div>
+                            </div>
+                            <div class="yt-studio-stat">
+                                <div class="yt-studio-stat-value" id="studioRevenue">$0</div>
+                                <div class="yt-studio-stat-label">Доход за 28 дней</div>
+                            </div>
+                            <div class="yt-studio-stat">
+                                <div class="yt-studio-stat-value" id="studioWatchTime">0</div>
+                                <div class="yt-studio-stat-label">Часов просмотра</div>
+                            </div>
+                        </div>
+                        
+                        <button class="yt-btn" id="uploadStudioBtn">
+                            <i class="fas fa-upload"></i> Загрузить видео
+                        </button>
+                        
+                        <div class="yt-section-title">Последние видео</div>
+                        <div id="studioVideos">
+                            <!-- Видео загружаются через JS -->
+                        </div>
+                        
+                        <div id="studioEmpty" class="yt-empty-state" style="display: none;">
+                            <div class="yt-empty-icon">
+                                <i class="fas fa-video"></i>
+                            </div>
+                            <h3 class="yt-empty-title">У вас еще нет видео</h3>
+                            <p class="yt-empty-text">Загрузите первое видео и начните развивать свой канал</p>
+                            <button class="yt-btn" id="uploadFirstStudioBtn">
+                                <i class="fas fa-upload"></i> Загрузить первое видео
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Контент -->
+                    <div id="studioContent" class="studio-tab">
+                        <h2>Мои видео</h2>
+                        <div id="studioContentVideos">
+                            <!-- Контент загружается через JS -->
+                        </div>
+                    </div>
+                    
+                    <!-- Аналитика -->
+                    <div id="studioAnalytics" class="studio-tab">
+                        <h2>Аналитика канала</h2>
+                        <div id="studioAnalyticsContent">
+                            <!-- Аналитика загружается через JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Страница аутентификации -->
+        <div id="authPage" class="yt-page" style="display: none;">
+            <div class="yt-auth-container">
+                <div class="yt-auth-box">
+                    <h2 class="yt-auth-title" id="authTitle">Вход в UsTube</h2>
+                    <p class="yt-auth-subtitle" id="authSubtitle">Войдите в свой аккаунт</p>
+                    
+                    <form class="yt-auth-form" id="authForm">
+                        <input type="text" class="yt-auth-input" id="authUsername" placeholder="Имя пользователя" required>
+                        <input type="email" class="yt-auth-input" id="authEmail" placeholder="Email" required>
+                        <input type="password" class="yt-auth-input" id="authPassword" placeholder="Пароль" required>
+                        <input type="password" class="yt-auth-input" id="authConfirmPassword" placeholder="Подтвердите пароль" style="display: none;">
+                        
+                        <button type="submit" class="yt-auth-btn" id="authSubmitBtn">Войти</button>
+                    </form>
+                    
+                    <div class="yt-auth-link">
+                        <span id="authSwitchText">Нет аккаунта?</span>
+                        <a href="#" id="authSwitchLink">Зарегистрироваться</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Модальное окно загрузки видео -->
+    <div class="yt-modal" id="uploadModal">
+        <div class="yt-modal-content">
+            <div class="yt-modal-header">
+                <h2 class="yt-modal-title">Загрузить видео</h2>
+                <button class="yt-modal-close" id="closeModalBtn">&times;</button>
+            </div>
+            
+            <div class="yt-upload-area" id="uploadArea">
+                <div class="yt-upload-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <h3 style="margin-bottom: 8px;">Выберите файлы для загрузки</h3>
+                <p style="color: var(--yt-text-secondary); margin-bottom: 16px;">Или перетащите видео файлы сюда</p>
+                <button class="yt-btn" id="selectFileBtn">Выбрать файлы</button>
+            </div>
+            
+            <div style="display: none;" id="uploadForm">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; color: var(--yt-text-secondary);">Название видео</label>
+                    <input type="text" id="videoTitleInput" style="width: 100%; padding: 12px; background: var(--yt-dark-gray); border: 1px solid var(--yt-medium-gray); border-radius: 8px; color: var(--yt-text-primary);" required>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; color: var(--yt-text-secondary);">Описание</label>
+                    <textarea id="videoDescriptionInput" style="width: 100%; padding: 12px; background: var(--yt-dark-gray); border: 1px solid var(--yt-medium-gray); border-radius: 8px; color: var(--yt-text-primary); min-height: 100px;"></textarea>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; color: var(--yt-text-secondary);">Категория</label>
+                    <select id="videoCategoryInput" style="width: 100%; padding: 12px; background: var(--yt-dark-gray); border: 1px solid var(--yt-medium-gray); border-radius: 8px; color: var(--yt-text-primary);">
+                        <option value="entertainment">Развлечения</option>
+                        <option value="music">Музыка</option>
+                        <option value="gaming">Игры</option>
+                        <option value="technology">Технологии</option>
+                        <option value="education">Обучение</option>
+                        <option value="sports">Спорт</option>
+                        <option value="comedy">Юмор</option>
+                        <option value="news">Новости</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" class="yt-btn secondary" id="cancelUploadBtn">Отмена</button>
+                    <button type="button" class="yt-btn" id="submitUploadBtn">Опубликовать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div id="notification" style="position: fixed; top: 80px; right: 20px; background: var(--yt-red); color: white; padding: 12px 24px; border-radius: 8px; display: none; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        <span id="notificationText"></span>
+    </div>
+
+    <script>
+        // ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+        class UsTubeApp {
+            constructor() {
+                this.currentUser = null;
+                this.currentVideo = null;
+                this.videos = [];
+                this.subscriptions = [];
+                this.comments = [];
+                this.currentPage = 'home';
+                this.apiBaseUrl = window.location.origin;
+                
+                this.init();
+            }
+            
+            async init() {
+                this.setupEventListeners();
+                this.checkAuth();
+                this.loadTheme();
+                await this.loadVideos();
+                await this.loadSubscriptions();
+                this.updateUI();
+                
+                // Проверяем URL для страницы видео
+                const urlParams = new URLSearchParams(window.location.search);
+                const videoId = urlParams.get('v');
+                if (videoId) {
+                    await this.loadWatchPage(videoId);
+                }
+            }
+            
+            setupEventListeners() {
+                // Переключение меню
+                document.getElementById('menuToggle').addEventListener('click', () => {
+                    document.getElementById('sidebar').classList.toggle('mini');
+                    document.getElementById('mainContent').classList.toggle('mini-sidebar');
+                });
+                
+                // Переключение темы
+                document.getElementById('themeToggle').addEventListener('click', () => {
+                    this.toggleTheme();
+                });
+                
+                // Поиск
+                document.getElementById('searchForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const query = document.getElementById('searchInput').value;
+                    if (query.trim()) {
+                        this.searchVideos(query);
+                    }
+                });
+                
+                // Создание видео
+                document.getElementById('createVideoBtn').addEventListener('click', () => {
+                    if (this.currentUser) {
+                        this.showUploadModal();
+                    } else {
+                        this.showAuthPage();
+                        this.showNotification('Войдите в систему для загрузки видео');
+                    }
+                });
+                
+                // Аватар пользователя
+                document.getElementById('userAvatar').addEventListener('click', () => {
+                    if (this.currentUser) {
+                        this.loadStudioPage();
+                    } else {
+                        this.showAuthPage();
+                    }
+                });
+                
+                // Навигация по страницам
+                document.querySelectorAll('.yt-sidebar-item[data-page]').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const page = item.getAttribute('data-page');
+                        this.loadPage(page);
+                    });
+                });
+                
+                // Навигация по студии
+                document.querySelectorAll('.yt-sidebar-item[data-studio-tab]').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const tab = item.getAttribute('data-studio-tab');
+                        this.showStudioTab(tab);
+                    });
+                });
+                
+                // Категории
+                document.querySelectorAll('.yt-tag').forEach(tag => {
+                    tag.addEventListener('click', () => {
+                        const category = tag.getAttribute('data-category');
+                        this.filterVideosByCategory(category);
+                    });
+                });
+                
+                // Модальное окно загрузки
+                document.getElementById('closeModalBtn').addEventListener('click', () => {
+                    this.hideUploadModal();
+                });
+                
+                document.getElementById('selectFileBtn').addEventListener('click', () => {
+                    this.showUploadForm();
+                });
+                
+                document.getElementById('cancelUploadBtn').addEventListener('click', () => {
+                    this.hideUploadForm();
+                });
+                
+                document.getElementById('submitUploadBtn').addEventListener('click', () => {
+                    this.submitVideo();
+                });
+                
+                // Загрузка первого видео
+                document.getElementById('uploadFirstVideoBtn')?.addEventListener('click', () => {
+                    this.showUploadModal();
+                });
+                
+                document.getElementById('uploadFirstStudioBtn')?.addEventListener('click', () => {
+                    this.showUploadModal();
+                });
+                
+                document.getElementById('uploadStudioBtn')?.addEventListener('click', () => {
+                    this.showUploadModal();
+                });
+                
+                // Аутентификация
+                document.getElementById('authForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleAuth();
+                });
+                
+                document.getElementById('authSwitchLink').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.toggleAuthMode();
+                });
+                
+                // Комментарии
+                document.getElementById('commentInput')?.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                        this.submitComment(e.target.value);
+                        e.target.value = '';
+                    }
+                });
+                
+                // Кнопки действий с видео
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('#likeBtn')) {
+                        this.likeVideo();
+                    } else if (e.target.closest('#dislikeBtn')) {
+                        this.dislikeVideo();
+                    } else if (e.target.closest('#shareBtn')) {
+                        this.shareVideo();
+                    } else if (e.target.closest('#saveBtn')) {
+                        this.saveVideo();
+                    } else if (e.target.closest('#subscribeBtn')) {
+                        this.toggleSubscription();
+                    }
+                });
+                
+                // Закрытие модального окна по клику вне его
+                document.getElementById('uploadModal').addEventListener('click', (e) => {
+                    if (e.target.id === 'uploadModal') {
+                        this.hideUploadModal();
+                    }
+                });
+            }
+            
+            // ===== АУТЕНТИФИКАЦИЯ =====
+            async checkAuth() {
+                const token = localStorage.getItem('ustube_token');
+                if (token) {
+                    try {
+                        const response = await fetch(`${this.apiBaseUrl}/api/auth/me`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const user = await response.json();
+                            this.currentUser = user;
+                            this.updateUserUI();
+                            return true;
+                        }
+                    } catch (error) {
+                        console.error('Auth check failed:', error);
+                    }
+                }
+                return false;
+            }
+            
+            async handleAuth() {
+                const isLoginMode = document.getElementById('authSubmitBtn').textContent === 'Войти';
+                const username = document.getElementById('authUsername').value;
+                const email = document.getElementById('authEmail').value;
+                const password = document.getElementById('authPassword').value;
+                
+                if (isLoginMode) {
+                    await this.login(email, password);
+                } else {
+                    const confirmPassword = document.getElementById('authConfirmPassword').value;
+                    if (password !== confirmPassword) {
+                        this.showNotification('Пароли не совпадают');
+                        return;
+                    }
+                    await this.register(username, email, password);
+                }
+            }
+            
+            async login(email, password) {
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/api/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email, password })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.token) {
+                        localStorage.setItem('ustube_token', data.token);
+                        this.currentUser = data.user;
+                        this.showNotification('Вход выполнен успешно!');
+                        this.loadHomePage();
+                        this.updateUserUI();
+                    } else {
+                        this.showNotification(data.message || 'Ошибка входа');
+                    }
+                } catch (error) {
+                    this.showNotification('Ошибка подключения к серверу');
+                }
+            }
+            
+            async register(username, email, password) {
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/api/auth/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, email, password })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.token) {
+                        localStorage.setItem('ustube_token', data.token);
+                        this.currentUser = data.user;
+                        this.showNotification('Регистрация успешна!');
+                        this.loadHomePage();
+                        this.updateUserUI();
+                    } else {
+                        this.showNotification(data.message || 'Ошибка регистрации');
+                    }
+                } catch (error) {
+                    this.showNotification('Ошибка подключения к серверу');
+                }
+            }
+            
+            logout() {
+                localStorage.removeItem('ustube_token');
+                this.currentUser = null;
+                this.showNotification('Вы вышли из системы');
+                this.loadHomePage();
+                this.updateUserUI();
+            }
+            
+            toggleAuthMode() {
+                const isLoginMode = document.getElementById('authSubmitBtn').textContent === 'Войти';
+                const confirmInput = document.getElementById('authConfirmPassword');
+                const usernameInput = document.getElementById('authUsername');
+                const switchText = document.getElementById('authSwitchText');
+                const switchLink = document.getElementById('authSwitchLink');
+                const title = document.getElementById('authTitle');
+                const subtitle = document.getElementById('authSubtitle');
+                const submitBtn = document.getElementById('authSubmitBtn');
+                
+                if (isLoginMode) {
+                    // Переключаем на регистрацию
+                    title.textContent = 'Регистрация в UsTube';
+                    subtitle.textContent = 'Создайте новый аккаунт';
+                    usernameInput.style.display = 'block';
+                    confirmInput.style.display = 'block';
+                    submitBtn.textContent = 'Зарегистрироваться';
+                    switchText.textContent = 'Уже есть аккаунт?';
+                    switchLink.textContent = 'Войти';
+                } else {
+                    // Переключаем на вход
+                    title.textContent = 'Вход в UsTube';
+                    subtitle.textContent = 'Войдите в свой аккаунт';
+                    usernameInput.style.display = 'none';
+                    confirmInput.style.display = 'none';
+                    submitBtn.textContent = 'Войти';
+                    switchText.textContent = 'Нет аккаунта?';
+                    switchLink.textContent = 'Зарегистрироваться';
+                }
+            }
+            
+            // ===== ЗАГРУЗКА ДАННЫХ =====
+            async loadVideos() {
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/api/videos`);
+                    if (response.ok) {
+                        this.videos = await response.json();
+                        this.renderVideoGrid();
+                    }
+                } catch (error) {
+                    console.error('Failed to load videos:', error);
+                }
+            }
+            
+            async loadSubscriptions() {
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/api/subscriptions`);
+                    if (response.ok) {
+                        this.subscriptions = await response.json();
+                        this.renderSubscriptions();
+                    }
+                } catch (error) {
+                    console.error('Failed to load subscriptions:', error);
+                }
+            }
+            
+            async loadVideo(videoId) {
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/api/videos/${videoId}`);
+                    if (response.ok) {
+                        return await response.json();
+                    }
+                } catch (error) {
+                    console.error('Failed to load video:', error);
+                }
+                return null;
+            }
+            
+            async loadComments(videoId) {
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/api/videos/${videoId}/comments`);
+                    if (response.ok) {
+                        return await response.json();
+                    }
+                } catch (error) {
+                    console.error('Failed to load comments:', error);
+                }
+                return [];
+            }
+            
+            // ===== ОТОБРАЖЕНИЕ =====
+            renderVideoGrid() {
+                const grid = document.getElementById('videoGrid');
+                const emptyState = document.getElementById('emptyVideos');
+                
+                if (this.videos.length === 0) {
+                    grid.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                
+                grid.style.display = 'grid';
+                emptyState.style.display = 'none';
+                grid.innerHTML = '';
+                
+                this.videos.forEach(video => {
+                    const videoElement = this.createVideoCard(video);
+                    grid.appendChild(videoElement);
+                });
+            }
+            
+            createVideoCard(video) {
+                const div = document.createElement('div');
+                div.className = 'yt-video-card';
+                div.innerHTML = `
+                    <div class="yt-video-thumbnail" onclick="app.loadWatchPage('${video.id}')">
+                        <div style="width: 100%; height: 100%; background: linear-gradient(45deg, #${this.stringToColor(video.title)}, #${this.stringToColor(video.channelName)});"></div>
+                        <div class="yt-video-duration">${this.formatDuration(video.duration)}</div>
+                    </div>
+                    <div class="yt-video-info">
+                        <div class="yt-channel-avatar" onclick="app.loadChannelPage('${video.channelId}')">
+                            ${video.channelName.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="yt-video-details">
+                            <div class="yt-video-title" onclick="app.loadWatchPage('${video.id}')">${video.title}</div>
+                            <div class="yt-channel-name" onclick="app.loadChannelPage('${video.channelId}')">${video.channelName}</div>
+                            <div class="yt-video-stats">
+                                <span>${this.formatNumber(video.views)} просмотров</span>
+                                <span> • ${this.timeAgo(video.uploadedAt)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return div;
+            }
+            
+            renderSubscriptions() {
+                const container = document.getElementById('subscriptionsList');
+                container.innerHTML = '';
+                
+                this.subscriptions.forEach(channel => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'yt-sidebar-item';
+                    item.innerHTML = `
+                        <div class="yt-channel-avatar" style="margin-right: 24px;">${channel.name.charAt(0).toUpperCase()}</div>
+                        <div class="yt-sidebar-text">${channel.name}</div>
+                    `;
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.loadChannelPage(channel.id);
+                    });
+                    container.appendChild(item);
+                });
+            }
+            
+            // ===== НАВИГАЦИЯ =====
+            loadPage(page) {
+                // Скрываем все страницы
+                document.querySelectorAll('.yt-page').forEach(p => {
+                    p.style.display = 'none';
+                });
+                
+                // Убираем активный класс со всех пунктов меню
+                document.querySelectorAll('.yt-sidebar-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // Добавляем активный класс к текущему пункту
+                document.querySelector(`.yt-sidebar-item[data-page="${page}"]`)?.classList.add('active');
+                
+                // Показываем нужную страницу
+                this.currentPage = page;
+                
+                switch(page) {
+                    case 'home':
+                        this.loadHomePage();
+                        break;
+                    case 'studio':
+                        if (this.currentUser) {
+                            this.loadStudioPage();
+                        } else {
+                            this.showAuthPage();
+                        }
+                        break;
+                    case 'shorts':
+                    case 'subscriptions':
+                    case 'history':
+                    case 'playlists':
+                    case 'liked':
+                        // Показываем заглушку для этих страниц
+                        document.getElementById('homePage').style.display = 'block';
+                        this.showNotification('Эта функция находится в разработке');
+                        break;
+                }
+            }
+            
+            loadHomePage() {
+                document.getElementById('homePage').style.display = 'block';
+                document.getElementById('authPage').style.display = 'none';
+                this.renderVideoGrid();
+            }
+            
+            async loadWatchPage(videoId) {
+                this.currentPage = 'watch';
+                
+                // Обновляем URL
+                window.history.pushState({}, '', `?v=${videoId}`);
+                
+                // Показываем страницу просмотра
+                document.querySelectorAll('.yt-page').forEach(p => {
+                    p.style.display = 'none';
+                });
+                document.getElementById('watchPage').style.display = 'block';
+                
+                // Загружаем данные видео
+                const video = await this.loadVideo(videoId);
+                if (video) {
+                    this.currentVideo = video;
+                    this.renderVideoPlayer(video);
+                    
+                    // Загружаем комментарии
+                    const comments = await this.loadComments(videoId);
+                    this.renderComments(comments);
+                    
+                    // Загружаем рекомендации
+                    this.loadRecommendedVideos(videoId);
+                    
+                    // Увеличиваем счетчик просмотров
+                    this.incrementViewCount(videoId);
+                }
+            }
+            
+            loadStudioPage() {
+                if (!this.currentUser) {
+                    this.showAuthPage();
+                    return;
+                }
+                
+                this.currentPage = 'studio';
+                document.querySelectorAll('.yt-page').forEach(p => {
+                    p.style.display = 'none';
+                });
+                document.getElementById('studioPage').style.display = 'block';
+                
+                // Показываем дашборд
+                this.showStudioTab('dashboard');
+                
+                // Загружаем видео пользователя
+                this.loadUserVideos();
+                
+                // Обновляем статистику
+                this.updateStudioStats();
+            }
+            
+            showStudioTab(tab) {
+                // Скрываем все табы
+                document.querySelectorAll('.studio-tab').forEach(t => {
+                    t.style.display = 'none';
+                    t.classList.remove('active');
+                });
+                
+                // Убираем активный класс со всех пунктов меню
+                document.querySelectorAll('.yt-sidebar-item[data-studio-tab]').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // Показываем нужный таб
+                document.getElementById(`studio${tab.charAt(0).toUpperCase() + tab.slice(1)}`).style.display = 'block';
+                document.querySelector(`.yt-sidebar-item[data-studio-tab="${tab}"]`)?.classList.add('active');
+            }
+            
+            showAuthPage() {
+                document.querySelectorAll('.yt-page').forEach(p => {
+                    p.style.display = 'none';
+                });
+                document.getElementById('authPage').style.display = 'block';
+                
+                // Сбрасываем форму
+                document.getElementById('authForm').reset();
+                this.toggleAuthMode();
+            }
+            
+            // ===== ВИДЕО ПЛЕЕР =====
+            renderVideoPlayer(video) {
+                document.getElementById('currentVideoId').textContent = video.id;
+                document.getElementById('videoTitle').textContent = video.title;
+                document.getElementById('videoViews').textContent = `${this.formatNumber(video.views)} просмотров`;
+                document.getElementById('videoTime').textContent = this.timeAgo(video.uploadedAt);
+                document.getElementById('likeCount').textContent = this.formatNumber(video.likes);
+                document.getElementById('dislikeCount').textContent = this.formatNumber(video.dislikes);
+                document.getElementById('channelName').textContent = video.channelName;
+                document.getElementById('channelAvatar').innerHTML = video.channelName.charAt(0).toUpperCase();
+                document.getElementById('channelSubs').textContent = `${this.formatNumber(video.channelSubscribers)} подписчиков`;
+                document.getElementById('videoDescription').innerHTML = video.description.replace(/\n/g, '<br>');
+                
+                // Обновляем плеер
+                const playerContent = document.getElementById('playerContent');
+                playerContent.innerHTML = `
+                    <div style="text-align: center; color: white; width: 100%;">
+                        <i class="fas fa-play-circle" style="font-size: 64px; margin-bottom: 16px;"></i>
+                        <div style="font-size: 24px; margin-bottom: 8px;">${video.title}</div>
+                        <div style="font-size: 16px; color: #aaa;">${video.channelName}</div>
+                        <div style="font-size: 14px; color: #777; margin-top: 8px;">Длительность: ${this.formatDuration(video.duration)}</div>
+                    </div>
+                `;
+                
+                // Настройка кнопки подписки
+                const subscribeBtn = document.getElementById('subscribeBtn');
+                subscribeBtn.textContent = video.isSubscribed ? 'Вы подписаны' : 'Подписаться';
+                subscribeBtn.classList.toggle('subscribed', video.isSubscribed);
+                subscribeBtn.onclick = () => this.toggleSubscription();
+                
+                // Показываем форму комментария если пользователь авторизован
+                document.getElementById('commentFormContainer').style.display = this.currentUser ? 'flex' : 'none';
+            }
+            
+            renderComments(comments) {
+                const container = document.getElementById('commentsContainer');
+                const count = document.getElementById('commentsCount');
+                
+                count.textContent = `${comments.length} комментариев`;
+                
+                if (comments.length === 0) {
+                    container.innerHTML = '<p style="color: var(--yt-text-secondary); text-align: center;">Пока нет комментариев. Будьте первым!</p>';
+                    return;
+                }
+                
+                container.innerHTML = '';
+                comments.forEach(comment => {
+                    const commentElement = document.createElement('div');
+                    commentElement.className = 'yt-comment';
+                    commentElement.innerHTML = `
+                        <div class="yt-comment-avatar">${comment.author.charAt(0).toUpperCase()}</div>
+                        <div class="yt-comment-content">
+                            <div class="yt-comment-header">
+                                <span class="yt-comment-author">${comment.author}</span>
+                                <span class="yt-comment-time">${this.timeAgo(comment.timestamp)}</span>
+                            </div>
+                            <div class="yt-comment-text">${comment.text}</div>
+                            <div class="yt-comment-actions">
+                                <button class="yt-comment-action">
+                                    <i class="fas fa-thumbs-up"></i>
+                                    <span>${this.formatNumber(comment.likes)}</span>
+                                </button>
+                                <button class="yt-comment-action">
+                                    <i class="fas fa-thumbs-down"></i>
+                                </button>
+                                <button class="yt-comment-action">
+                                    Ответить
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(commentElement);
+                });
+            }
+            
+            async loadRecommendedVideos(currentVideoId) {
+                const container = document.getElementById('recommendedVideos');
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/api/videos/recommended?exclude=${currentVideoId}`);
+                    if (response.ok) {
+                        const videos = await response.json();
+                        container.innerHTML = '';
+                        
+                        videos.forEach(video => {
+                            const videoElement = document.createElement('div');
+                            videoElement.className = 'yt-recommended-video';
+                            videoElement.innerHTML = `
+                                <div class="yt-recommended-thumb" onclick="app.loadWatchPage('${video.id}')">
+                                    <div style="width: 100%; height: 100%; background: linear-gradient(45deg, #${this.stringToColor(video.title)}, #${this.stringToColor(video.channelName)});"></div>
+                                    <div class="yt-recommended-duration">${this.formatDuration(video.duration)}</div>
+                                </div>
+                                <div class="yt-recommended-info">
+                                    <div class="yt-recommended-title" onclick="app.loadWatchPage('${video.id}')">${video.title}</div>
+                                    <div class="yt-recommended-channel" onclick="app.loadChannelPage('${video.channelId}')">${video.channelName}</div>
+                                    <div class="yt-recommended-stats">
+                                        <span>${this.formatNumber(video.views)} просмотров</span>
+                                        <span> • ${this.timeAgo(video.uploadedAt)}</span>
+                                    </div>
+                                </div>
+                            `;
+                            container.appendChild(videoElement);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Failed to load recommended videos:', error);
+                }
+            }
+            
+            // ===== ЗАГРУЗКА ВИДЕО =====
+            showUploadModal() {
+                if (!this.currentUser) {
+                    this.showAuthPage();
+                    this.showNotification('Войдите в систему для загрузки видео');
+                    return;
+                }
+                
+                document.getElementById('uploadModal').classList.add('active');
+                document.getElementById('uploadArea').style.display = 'block';
+                document.getElementById('uploadForm').style.display = 'none';
+                
+                // Сброс формы
+                document.getElementById('videoTitleInput').value = '';
+                document.getElementById('videoDescriptionInput').value = '';
+                document.getElementById('videoCategoryInput').value = 'entertainment';
+            }
+            
+            hideUploadModal() {
+                document.getElementById('uploadModal').classList.remove('active');
+            }
+            
+            showUploadForm() {
+                document.getElementById('uploadArea').style.display = 'none';
+                document.getElementById('uploadForm').style.display = 'block';
+            }
+            
+            hideUploadForm() {
+                document.getElementById('uploadForm').style.display = 'none';
+                document.getElementById('uploadArea').style.display = 'block';
+            }
+            
+            async submitVideo() {
+                const title = document.getElementById('videoTitleInput').value.trim();
+                const description = document.getElementById('videoDescriptionInput').value.trim();
+                const category = document.getElementById('videoCategoryInput').value;
+                
+                if (!title) {
+                    this.showNotification('Введите название видео');
+                    return;
+                }
+                
+                try {
+                    const token = localStorage.getItem('ustube_token');
+                    const response = await fetch(`${this.apiBaseUrl}/api/videos/upload`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            title,
+                            description,
+                            category,
+                            duration: Math.floor(Math.random() * 1800) + 60 // 1-30 минут
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const newVideo = await response.json();
+                        this.videos.unshift(newVideo);
+                        this.hideUploadModal();
+                        this.showNotification('Видео успешно загружено!');
+                        
+                        if (this.currentPage === 'home') {
+                            this.renderVideoGrid();
+                        } else if (this.currentPage === 'studio') {
+                            this.loadUserVideos();
+                        }
+                    } else {
+                        const error = await response.json();
+                        this.showNotification(error.message || 'Ошибка загрузки видео');
+                    }
+                } catch (error) {
+                    this.showNotification('Ошибка подключения к серверу');
+                }
+            }
+            
+            // ===== ДЕЙСТВИЯ С ВИДЕО =====
+            async likeVideo() {
+                if (!this.currentUser) {
+                    this.showNotification('Войдите в систему чтобы оценить видео');
+                    return;
+                }
+                
+                if (!this.currentVideo) return;
+                
+                try {
+                    const token = localStorage.getItem('ustube_token');
+                    const response = await fetch(`${this.apiBaseUrl}/api/videos/${this.currentVideo.id}/like`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.currentVideo.likes = data.likes;
+                        document.getElementById('likeCount').textContent = this.formatNumber(data.likes);
+                        document.getElementById('likeBtn').classList.add('liked');
+                    }
+                } catch (error) {
+                    console.error('Failed to like video:', error);
+                }
+            }
+            
+            async dislikeVideo() {
+                if (!this.currentUser) {
+                    this.showNotification('Войдите в систему чтобы оценить видео');
+                    return;
+                }
+                
+                if (!this.currentVideo) return;
+                
+                try {
+                    const token = localStorage.getItem('ustube_token');
+                    const response = await fetch(`${this.apiBaseUrl}/api/videos/${this.currentVideo.id}/dislike`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.currentVideo.dislikes = data.dislikes;
+                        document.getElementById('dislikeCount').textContent = this.formatNumber(data.dislikes);
+                    }
+                } catch (error) {
+                    console.error('Failed to dislike video:', error);
+                }
+            }
+            
+            async toggleSubscription() {
+                if (!this.currentUser) {
+                    this.showNotification('Войдите в систему чтобы подписаться');
+                    return;
+                }
+                
+                if (!this.currentVideo) return;
+                
+                try {
+                    const token = localStorage.getItem('ustube_token');
+                    const response = await fetch(`${this.apiBaseUrl}/api/channels/${this.currentVideo.channelId}/subscribe`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.currentVideo.isSubscribed = data.subscribed;
+                        this.currentVideo.channelSubscribers = data.subscribers;
+                        
+                        const subscribeBtn = document.getElementById('subscribeBtn');
+                        subscribeBtn.textContent = data.subscribed ? 'Вы подписаны' : 'Подписаться';
+                        subscribeBtn.classList.toggle('subscribed', data.subscribed);
+                        document.getElementById('channelSubs').textContent = `${this.formatNumber(data.subscribers)} подписчиков`;
+                        
+                        // Обновляем список подписок
+                        await this.loadSubscriptions();
+                    }
+                } catch (error) {
+                    console.error('Failed to toggle subscription:', error);
+                }
+            }
+            
+            async submitComment(text) {
+                if (!this.currentUser) {
+                    this.showNotification('Войдите в систему чтобы комментировать');
+                    return;
+                }
+                
+                if (!this.currentVideo) return;
+                
+                try {
+                    const token = localStorage.getItem('ustube_token');
+                    const response = await fetch(`${this.apiBaseUrl}/api/videos/${this.currentVideo.id}/comments`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ text })
+                    });
+                    
+                    if (response.ok) {
+                        const newComment = await response.json();
+                        const comments = await this.loadComments(this.currentVideo.id);
+                        this.renderComments(comments);
+                    }
+                } catch (error) {
+                    console.error('Failed to submit comment:', error);
+                }
+            }
+            
+            shareVideo() {
+                if (!this.currentVideo) return;
+                
+                const url = `${window.location.origin}?v=${this.currentVideo.id}`;
+                navigator.clipboard.writeText(url).then(() => {
+                    this.showNotification('Ссылка скопирована в буфер обмена!');
+                });
+            }
+            
+            saveVideo() {
+                if (!this.currentUser) {
+                    this.showNotification('Войдите в систему чтобы сохранить видео');
+                    return;
+                }
+                
+                this.showNotification('Видео добавлено в "Смотреть позже"');
+            }
+            
+            // ===== ПОИСК =====
+            async searchVideos(query) {
+                try {
+                    const response = await fetch(`${this.apiBaseUrl}/api/search?q=${encodeURIComponent(query)}`);
+                    if (response.ok) {
+                        const videos = await response.json();
+                        this.videos = videos;
+                        this.renderVideoGrid();
+                    }
+                } catch (error) {
+                    console.error('Search failed:', error);
+                }
+            }
+            
+            filterVideosByCategory(category) {
+                // Обновляем активную категорию
+                document.querySelectorAll('.yt-tag').forEach(tag => {
+                    tag.classList.remove('active');
+                });
+                document.querySelector(`.yt-tag[data-category="${category}"]`)?.classList.add('active');
+                
+                if (category === 'all') {
+                    this.renderVideoGrid();
+                    return;
+                }
+                
+                const filtered = this.videos.filter(video => video.category === category);
+                const grid = document.getElementById('videoGrid');
+                grid.innerHTML = '';
+                
+                if (filtered.length === 0) {
+                    grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--yt-text-secondary);">Нет видео в этой категории</p>';
+                    return;
+                }
+                
+                filtered.forEach(video => {
+                    const videoElement = this.createVideoCard(video);
+                    grid.appendChild(videoElement);
+                });
+            }
+            
+            // ===== СТУДИЯ =====
+            async loadUserVideos() {
+                if (!this.currentUser) return;
+                
+                try {
+                    const token = localStorage.getItem('ustube_token');
+                    const response = await fetch(`${this.apiBaseUrl}/api/studio/videos`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const videos = await response.json();
+                        const container = document.getElementById('studioVideos');
+                        const emptyState = document.getElementById('studioEmpty');
+                        
+                        if (videos.length === 0) {
+                            container.style.display = 'none';
+                            emptyState.style.display = 'block';
+                            return;
+                        }
+                        
+                        container.style.display = 'grid';
+                        emptyState.style.display = 'none';
+                        container.innerHTML = '';
+                        
+                        videos.forEach(video => {
+                            const videoElement = this.createStudioVideoCard(video);
+                            container.appendChild(videoElement);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Failed to load user videos:', error);
+                }
+            }
+            
+            createStudioVideoCard(video) {
+                const div = document.createElement('div');
+                div.className = 'yt-video-card';
+                div.innerHTML = `
+                    <div class="yt-video-thumbnail" onclick="app.loadWatchPage('${video.id}')">
+                        <div style="width: 100%; height: 100%; background: linear-gradient(45deg, #${this.stringToColor(video.title)}, #${this.stringToColor(this.currentUser.username)});"></div>
+                        <div class="yt-video-duration">${this.formatDuration(video.duration)}</div>
+                    </div>
+                    <div class="yt-video-info">
+                        <div class="yt-video-details">
+                            <div class="yt-video-title" onclick="app.loadWatchPage('${video.id}')">${video.title}</div>
+                            <div class="yt-video-stats">
+                                <span>${this.formatNumber(video.views)} просмотров</span>
+                                <span> • ${this.formatNumber(video.likes)} лайков</span>
+                                <span> • ${this.timeAgo(video.uploadedAt)}</span>
+                            </div>
+                            <div style="margin-top: 8px;">
+                                <button class="yt-btn secondary" style="padding: 4px 12px; font-size: 12px;" onclick="app.editVideo('${video.id}')">Редактировать</button>
+                                <button class="yt-btn secondary" style="padding: 4px 12px; font-size: 12px; margin-left: 8px;" onclick="app.analyticsVideo('${video.id}')">Аналитика</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return div;
+            }
+            
+            async updateStudioStats() {
+                if (!this.currentUser) return;
+                
+                try {
+                    const token = localStorage.getItem('ustube_token');
+                    const response = await fetch(`${this.apiBaseUrl}/api/studio/stats`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const stats = await response.json();
+                        document.getElementById('studioViews').textContent = this.formatNumber(stats.views);
+                        document.getElementById('studioSubs').textContent = this.formatNumber(stats.subscribers);
+                        document.getElementById('studioRevenue').textContent = `$${this.formatNumber(stats.revenue)}`;
+                        document.getElementById('studioWatchTime').textContent = this.formatNumber(stats.watchTime);
+                        document.getElementById('studioChannelName').textContent = `${this.currentUser.username} - Творческая студия`;
+                    }
+                } catch (error) {
+                    console.error('Failed to load studio stats:', error);
+                }
+            }
+            
+            editVideo(videoId) {
+                this.showNotification('Редактирование видео ' + videoId);
+            }
+            
+            analyticsVideo(videoId) {
+                this.showNotification('Аналитика видео ' + videoId);
+            }
+            
+            // ===== УТИЛИТЫ =====
+            updateUserUI() {
+                const avatar = document.getElementById('userAvatar');
+                const currentUserAvatar = document.getElementById('currentUserAvatar');
+                
+                if (this.currentUser) {
+                    avatar.innerHTML = this.currentUser.username.charAt(0).toUpperCase();
+                    if (currentUserAvatar) {
+                        currentUserAvatar.innerHTML = this.currentUser.username.charAt(0).toUpperCase();
+                    }
+                } else {
+                    avatar.innerHTML = '<i class="fas fa-user"></i>';
+                    if (currentUserAvatar) {
+                        currentUserAvatar.innerHTML = '<i class="fas fa-user"></i>';
+                    }
+                }
+            }
+            
+            updateUI() {
+                this.updateUserUI();
+            }
+            
+            loadTheme() {
+                const savedTheme = localStorage.getItem('ustube_theme') || 'dark';
+                document.documentElement.setAttribute('data-theme', savedTheme);
+                const icon = document.querySelector('#themeToggle i');
+                icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+            
+            toggleTheme() {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('ustube_theme', newTheme);
+                
+                const icon = document.querySelector('#themeToggle i');
+                icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+            
+            showNotification(message) {
+                const notification = document.getElementById('notification');
+                const text = document.getElementById('notificationText');
+                
+                text.textContent = message;
+                notification.style.display = 'block';
+                
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 3000);
+            }
+            
+            // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+            formatNumber(num) {
+                if (num >= 1000000) {
+                    return (num / 1000000).toFixed(1) + 'M';
+                }
+                if (num >= 1000) {
+                    return (num / 1000).toFixed(1) + 'K';
+                }
+                return num.toString();
+            }
+            
+            timeAgo(timestamp) {
+                const seconds = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+                
+                if (seconds < 60) return 'только что';
+                if (seconds < 3600) return Math.floor(seconds / 60) + ' минут назад';
+                if (seconds < 86400) return Math.floor(seconds / 3600) + ' часов назад';
+                if (seconds < 2592000) return Math.floor(seconds / 86400) + ' дней назад';
+                if (seconds < 31536000) return Math.floor(seconds / 2592000) + ' месяцев назад';
+                return Math.floor(seconds / 31536000) + ' лет назад';
+            }
+            
+            formatDuration(seconds) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                
+                if (hours > 0) {
+                    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                }
+                return `${minutes}:${secs.toString().padStart(2, '0')}`;
+            }
+            
+            stringToColor(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                let color = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+                return "00000".substring(0, 6 - color.length) + color;
+            }
+            
+            async incrementViewCount(videoId) {
+                try {
+                    await fetch(`${this.apiBaseUrl}/api/videos/${videoId}/view`, {
+                        method: 'POST'
+                    });
+                } catch (error) {
+                    console.error('Failed to increment view count:', error);
+                }
+            }
+            
+            loadChannelPage(channelId) {
+                this.showNotification('Страница канала ' + channelId);
+            }
+        }
+        
+        // Инициализация приложения
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new UsTubeApp();
+            window.app = app;
+        });
+    </script>
+</body>
+</html>
