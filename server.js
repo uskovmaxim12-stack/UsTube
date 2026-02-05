@@ -1,9 +1,6 @@
-#!/usr/bin/env node
-
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
 const crypto = require('crypto');
 
 class USTubeServer {
@@ -12,7 +9,6 @@ class USTubeServer {
         this.dataDir = './data';
         this.ensureDataDir();
         this.loadData();
-        this.setupRoutes();
         this.start();
     }
     
@@ -23,28 +19,16 @@ class USTubeServer {
     }
     
     loadData() {
-        // Пользователи
         this.users = this.loadFromFile('users.json') || {};
-        
-        // Видео
         this.videos = this.loadFromFile('videos.json') || {};
-        
-        // Комментарии
         this.comments = this.loadFromFile('comments.json') || {};
-        
-        // Подписки
         this.subscriptions = this.loadFromFile('subscriptions.json') || {};
-        
-        // Лайки
         this.likes = this.loadFromFile('likes.json') || {};
-        
-        // История просмотров
         this.history = this.loadFromFile('history.json') || {};
         
         console.log('✅ Данные загружены');
         console.log(`👤 Пользователей: ${Object.keys(this.users).length}`);
         console.log(`🎥 Видео: ${Object.keys(this.videos).length}`);
-        console.log(`💬 Комментариев: ${Object.keys(this.comments).length}`);
     }
     
     loadFromFile(filename) {
@@ -78,7 +62,7 @@ class USTubeServer {
     
     createToken(userId) {
         const token = crypto.randomBytes(32).toString('hex');
-        const expires = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 дней
+        const expires = Date.now() + 7 * 24 * 60 * 60 * 1000;
         
         if (!this.users[userId]) return null;
         
@@ -102,173 +86,108 @@ class USTubeServer {
         return null;
     }
     
-    setupRoutes() {
-        this.routes = {
-            'GET': {
-                '/': this.serveIndex.bind(this),
-                '/api/auth/me': this.getCurrentUser.bind(this),
-                '/api/videos': this.getVideos.bind(this),
-                '/api/videos/:id': this.getVideo.bind(this),
-                '/api/videos/:id/comments': this.getComments.bind(this),
-                '/api/channels/subscriptions': this.getSubscriptions.bind(this),
-                '/api/channels/:id': this.getChannel.bind(this),
-                '/api/stats': this.getStats.bind(this)
-            },
-            'POST': {
-                '/api/auth/register': this.register.bind(this),
-                '/api/auth/login': this.login.bind(this),
-                '/api/auth/logout': this.logout.bind(this),
-                '/api/videos/upload': this.uploadVideo.bind(this),
-                '/api/videos/:id/comments': this.addComment.bind(this),
-                '/api/videos/:id/like': this.likeVideo.bind(this),
-                '/api/videos/:id/dislike': this.dislikeVideo.bind(this),
-                '/api/channels/:id/subscribe': this.subscribe.bind(this),
-                '/api/comments/:id/like': this.likeComment.bind(this)
-            }
-        };
-    }
-    
-    start() {
-        this.server = http.createServer((req, res) => {
-            const parsedUrl = url.parse(req.url, true);
-            const pathname = parsedUrl.pathname;
-            const method = req.method;
-            
-            // CORS headers
-            res.setHeader('Access-Control-Allow-Origin', '*');
-            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-            
-            if (method === 'OPTIONS') {
-                res.writeHead(200);
-                res.end();
-                return;
-            }
-            
-            // Обработка статических файлов (для демонстрации)
-            if (pathname === '/' || pathname === '/index.html') {
-                this.serveIndex(req, res);
-                return;
-            }
-            
-            // Поиск обработчика маршрута
-            let handler = null;
-            let params = {};
-            
-            for (const route in this.routes[method] || {}) {
-                const routePattern = route.replace(/:\w+/g, '([^/]+)');
-                const regex = new RegExp(`^${routePattern}$`);
-                const match = pathname.match(regex);
-                
-                if (match) {
-                    handler = this.routes[method][route];
-                    
-                    // Извлекаем параметры из пути
-                    const paramNames = [];
-                    const routeMatch = route.match(/:\w+/g);
-                    if (routeMatch) {
-                        routeMatch.forEach((param, index) => {
-                            params[param.substring(1)] = match[index + 1];
-                        });
-                    }
-                    
-                    break;
-                }
-            }
-            
-            if (handler) {
-                this.parseRequestBody(req, (body) => {
-                    req.body = body;
-                    req.params = params;
-                    req.query = parsedUrl.query;
-                    
-                    // Проверка авторизации для защищенных маршрутов
-                    const authHeader = req.headers.authorization;
-                    if (authHeader && authHeader.startsWith('Bearer ')) {
-                        const token = authHeader.substring(7);
-                        req.userId = this.verifyToken(token);
-                    }
-                    
-                    try {
-                        handler(req, res);
-                    } catch (error) {
-                        console.error('Handler error:', error);
-                        this.sendError(res, 'Внутренняя ошибка сервера', 500);
-                    }
-                });
-            } else {
-                this.sendError(res, 'Маршрут не найден', 404);
-            }
-        });
-        
-        this.server.listen(this.port, () => {
-            console.log(`
-╔══════════════════════════════════════════════════════════════╗
-║                                                              ║
-║   🎬 USTube Server запущен!                                 ║
-║                                                              ║
-║   🔗 Локальный: http://localhost:${this.port}${this.port < 1000 ? ' ' : ''}               ║
-║   🌐 Сеть: http://${this.getIPAddress()}:${this.port}                 ║
-║                                                              ║
-║   📊 Статистика:                                            ║
-║   👤 Пользователей: ${Object.keys(this.users).length}                          ║
-║   🎥 Видео: ${Object.keys(this.videos).length}                            ║
-║   💬 Комментариев: ${Object.keys(this.comments).length}                       ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
-            `);
-        });
-    }
-    
-    getIPAddress() {
-        const interfaces = require('os').networkInterfaces();
-        for (const name of Object.keys(interfaces)) {
-            for (const iface of interfaces[name]) {
-                if (iface.family === 'IPv4' && !iface.internal) {
-                    return iface.address;
-                }
-            }
+    serveStatic(req, res, url) {
+        let filePath = '.' + url.pathname;
+        if (filePath === './') {
+            filePath = './index.html';
         }
-        return 'localhost';
+        
+        const extname = path.extname(filePath);
+        let contentType = 'text/html';
+        
+        switch (extname) {
+            case '.js': contentType = 'text/javascript'; break;
+            case '.css': contentType = 'text/css'; break;
+            case '.json': contentType = 'application/json'; break;
+            case '.png': contentType = 'image/png'; break;
+            case '.jpg': contentType = 'image/jpg'; break;
+            case '.ico': contentType = 'image/x-icon'; break;
+        }
+        
+        fs.readFile(filePath, (error, content) => {
+            if (error) {
+                if(error.code === 'ENOENT') {
+                    // Страница не найдена
+                    fs.readFile('./index.html', (err, data) => {
+                        res.writeHead(200, { 'Content-Type': 'text/html' });
+                        res.end(data, 'utf-8');
+                    });
+                } else {
+                    res.writeHead(500);
+                    res.end('Ошибка сервера: ' + error.code);
+                }
+            } else {
+                res.writeHead(200, { 'Content-Type': contentType });
+                res.end(content, 'utf-8');
+            }
+        });
     }
     
-    parseRequestBody(req, callback) {
-        let body = '';
+    handleAPI(req, res, url) {
+        const method = req.method;
+        const path = url.pathname;
         
+        // CORS headers
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        
+        if (method === 'OPTIONS') {
+            res.writeHead(200);
+            res.end();
+            return;
+        }
+        
+        // Получаем токен авторизации
+        let userId = null;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.substring(7);
+            userId = this.verifyToken(token);
+        }
+        
+        // Парсим тело запроса
+        let body = '';
         req.on('data', chunk => {
             body += chunk.toString();
         });
         
         req.on('end', () => {
             try {
-                if (body) {
-                    if (req.headers['content-type']?.includes('application/json')) {
-                        callback(JSON.parse(body));
-                    } else if (req.headers['content-type']?.includes('multipart/form-data')) {
-                        // Упрощенная обработка multipart/form-data
-                        const boundary = req.headers['content-type'].split('boundary=')[1];
-                        const parts = body.split('--' + boundary);
-                        
-                        const result = {};
-                        for (const part of parts) {
-                            const match = part.match(/name="([^"]+)"\r\n\r\n([\s\S]*?)\r\n/);
-                            if (match) {
-                                const [, name, value] = match;
-                                result[name] = value.trim();
-                            }
-                        }
-                        
-                        callback(result);
-                    } else {
-                        callback(body);
-                    }
-                } else {
-                    callback({});
-                }
+                req.body = body ? JSON.parse(body) : {};
+                req.userId = userId;
+                req.query = Object.fromEntries(url.searchParams);
+                
+                this.routeAPI(req, res, path, method);
             } catch (error) {
-                callback({});
+                this.sendError(res, 'Ошибка парсинга запроса', 400);
             }
         });
+    }
+    
+    routeAPI(req, res, path, method) {
+        // API маршруты
+        const routes = {
+            'GET': {
+                '/api/auth/me': () => this.getCurrentUser(req, res),
+                '/api/videos': () => this.getVideos(req, res),
+                '/api/stats': () => this.getStats(req, res),
+                '/api/health': () => this.healthCheck(req, res)
+            },
+            'POST': {
+                '/api/auth/register': () => this.register(req, res),
+                '/api/auth/login': () => this.login(req, res),
+                '/api/auth/logout': () => this.logout(req, res),
+                '/api/videos/upload': () => this.uploadVideo(req, res)
+            }
+        };
+        
+        const handler = routes[method]?.[path];
+        if (handler) {
+            handler();
+        } else {
+            this.sendError(res, 'Маршрут не найден', 404);
+        }
     }
     
     sendJSON(res, data, statusCode = 200) {
@@ -295,26 +214,7 @@ class USTubeServer {
         });
     }
     
-    // ===== ОБРАБОТЧИКИ МАРШРУТОВ =====
-    
-    serveIndex(req, res) {
-        const indexPath = path.join(__dirname, 'index.html');
-        fs.readFile(indexPath, 'utf8', (err, data) => {
-            if (err) {
-                this.sendError(res, 'Ошибка загрузки страницы', 500);
-                return;
-            }
-            
-            res.writeHead(200, {
-                'Content-Type': 'text/html',
-                'Cache-Control': 'no-cache'
-            });
-            res.end(data);
-        });
-    }
-    
-    // ===== АВТОРИЗАЦИЯ =====
-    
+    // API методы
     register(req, res) {
         const { email, password, username } = req.body;
         
@@ -322,14 +222,10 @@ class USTubeServer {
             return this.sendError(res, 'Все поля обязательны', 400);
         }
         
-        if (password.length < 6) {
-            return this.sendError(res, 'Пароль должен быть не менее 6 символов', 400);
-        }
-        
         // Проверка уникальности email
         for (const userId in this.users) {
             if (this.users[userId].email === email) {
-                return this.sendError(res, 'Пользователь с таким email уже существует', 409);
+                return this.sendError(res, 'Пользователь уже существует', 409);
             }
         }
         
@@ -343,7 +239,6 @@ class USTubeServer {
             password: hashedPassword,
             createdAt: Date.now(),
             subscribers: 0,
-            videos: [],
             avatar: username.charAt(0).toUpperCase()
         };
         
@@ -420,102 +315,34 @@ class USTubeServer {
         this.sendSuccess(res, { user: userWithoutSensitive });
     }
     
-    // ===== ВИДЕО =====
-    
     getVideos(req, res) {
-        const { format, channels, search, limit = 20, offset = 0 } = req.query;
-        
-        let videos = Object.values(this.videos)
-            .filter(video => video.visibility === 'public')
-            .sort((a, b) => b.createdAt - a.createdAt);
-        
-        // Фильтрация по формату
-        if (format) {
-            videos = videos.filter(video => video.format === format);
-        }
-        
-        // Фильтрация по каналам
-        if (channels) {
-            const channelIds = channels.split(',');
-            videos = videos.filter(video => channelIds.includes(video.channelId));
-        }
-        
-        // Поиск
-        if (search) {
-            const searchLower = search.toLowerCase();
-            videos = videos.filter(video => 
-                video.title.toLowerCase().includes(searchLower) ||
-                video.description.toLowerCase().includes(searchLower) ||
-                video.tags.some(tag => tag.toLowerCase().includes(searchLower))
-            );
-        }
-        
-        // Пагинация
-        const paginatedVideos = videos.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
-        
-        // Добавляем информацию о канале
-        const videosWithChannel = paginatedVideos.map(video => {
-            const channel = this.users[video.channelId];
-            return {
-                ...video,
-                channel: {
-                    id: channel.id,
-                    username: channel.username,
-                    subscribers: channel.subscribers || 0,
-                    avatar: channel.avatar
-                }
-            };
-        });
-        
-        this.sendSuccess(res, {
-            videos: videosWithChannel,
-            total: videos.length
-        });
-    }
-    
-    getVideo(req, res) {
-        const videoId = req.params.id;
-        const video = this.videos[videoId];
-        
-        if (!video) {
-            return this.sendError(res, 'Видео не найдено', 404);
-        }
-        
-        // Увеличиваем счетчик просмотров
-        video.views = (video.views || 0) + 1;
-        this.saveToFile('videos.json', this.videos);
-        
-        // Добавляем в историю просмотров
-        if (req.userId) {
-            if (!this.history[req.userId]) {
-                this.history[req.userId] = [];
+        // Демо данные для видео
+        const videos = [
+            {
+                id: '1',
+                title: 'Добро пожаловать в USTube!',
+                channel: { username: 'USTube Team', subscribers: 1000 },
+                views: 1500,
+                likes: 120,
+                dislikes: 5,
+                duration: 120,
+                createdAt: Date.now() - 86400000,
+                description: 'Официальное видео платформы USTube'
+            },
+            {
+                id: '2',
+                title: 'Как создать аккаунт',
+                channel: { username: 'Техподдержка', subscribers: 500 },
+                views: 800,
+                likes: 75,
+                dislikes: 2,
+                duration: 180,
+                createdAt: Date.now() - 172800000,
+                description: 'Пошаговая инструкция регистрации'
             }
-            
-            this.history[req.userId].unshift({
-                videoId,
-                watchedAt: Date.now()
-            });
-            
-            // Ограничиваем историю 100 записями
-            if (this.history[req.userId].length > 100) {
-                this.history[req.userId] = this.history[req.userId].slice(0, 100);
-            }
-            
-            this.saveToFile('history.json', this.history);
-        }
+        ];
         
-        const channel = this.users[video.channelId];
-        const videoWithChannel = {
-            ...video,
-            channel: {
-                id: channel.id,
-                username: channel.username,
-                subscribers: channel.subscribers || 0,
-                avatar: channel.avatar
-            }
-        };
-        
-        this.sendSuccess(res, { video: videoWithChannel });
+        this.sendSuccess(res, { videos });
     }
     
     uploadVideo(req, res) {
@@ -525,14 +352,15 @@ class USTubeServer {
             return this.sendError(res, 'Требуется авторизация', 401);
         }
         
-        const { title, description, tags, visibility = 'public' } = req.body;
+        const { title, description } = req.body;
         
         if (!title) {
             return this.sendError(res, 'Название видео обязательно', 400);
         }
         
         const videoId = this.generateId();
-        const parsedTags = tags ? JSON.parse(tags) : [];
+        
+        if (!this.videos) this.videos = {};
         
         this.videos[videoId] = {
             id: videoId,
@@ -542,22 +370,15 @@ class USTubeServer {
             views: 0,
             likes: 0,
             dislikes: 0,
-            duration: Math.floor(Math.random() * 600) + 60, // 1-10 минут для демо
+            duration: 180,
             format: 'video',
-            tags: parsedTags,
-            visibility,
+            tags: [],
+            visibility: 'public',
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
         
-        // Добавляем видео в список пользователя
-        if (!this.users[userId].videos) {
-            this.users[userId].videos = [];
-        }
-        this.users[userId].videos.push(videoId);
-        
         this.saveToFile('videos.json', this.videos);
-        this.saveToFile('users.json', this.users);
         
         this.sendSuccess(res, {
             videoId,
@@ -565,279 +386,51 @@ class USTubeServer {
         });
     }
     
-    likeVideo(req, res) {
-        const userId = req.userId;
-        const videoId = req.params.id;
-        
-        if (!userId) {
-            return this.sendError(res, 'Требуется авторизация', 401);
-        }
-        
-        if (!this.videos[videoId]) {
-            return this.sendError(res, 'Видео не найдено', 404);
-        }
-        
-        const likeKey = `${userId}_${videoId}`;
-        
-        if (!this.likes[likeKey]) {
-            this.likes[likeKey] = {
-                userId,
-                videoId,
-                type: 'like',
-                createdAt: Date.now()
-            };
-            
-            this.videos[videoId].likes = (this.videos[videoId].likes || 0) + 1;
-            
-            this.saveToFile('likes.json', this.likes);
-            this.saveToFile('videos.json', this.videos);
-        }
-        
-        this.sendSuccess(res, {
-            likes: this.videos[videoId].likes
-        });
-    }
-    
-    dislikeVideo(req, res) {
-        const userId = req.userId;
-        const videoId = req.params.id;
-        
-        if (!userId) {
-            return this.sendError(res, 'Требуется авторизация', 401);
-        }
-        
-        if (!this.videos[videoId]) {
-            return this.sendError(res, 'Видео не найдено', 404);
-        }
-        
-        const dislikeKey = `${userId}_${videoId}_dislike`;
-        
-        if (!this.likes[dislikeKey]) {
-            this.likes[dislikeKey] = {
-                userId,
-                videoId,
-                type: 'dislike',
-                createdAt: Date.now()
-            };
-            
-            this.videos[videoId].dislikes = (this.videos[videoId].dislikes || 0) + 1;
-            
-            this.saveToFile('likes.json', this.likes);
-            this.saveToFile('videos.json', this.videos);
-        }
-        
-        this.sendSuccess(res, {
-            dislikes: this.videos[videoId].dislikes
-        });
-    }
-    
-    // ===== КОММЕНТАРИИ =====
-    
-    getComments(req, res) {
-        const videoId = req.params.id;
-        
-        // Получаем все комментарии для видео
-        const videoComments = Object.values(this.comments)
-            .filter(comment => comment.videoId === videoId)
-            .sort((a, b) => b.createdAt - a.createdAt)
-            .map(comment => {
-                const author = this.users[comment.userId];
-                return {
-                    ...comment,
-                    author: {
-                        id: author.id,
-                        username: author.username,
-                        avatar: author.avatar
-                    }
-                };
-            });
-        
-        this.sendSuccess(res, { comments: videoComments });
-    }
-    
-    addComment(req, res) {
-        const userId = req.userId;
-        const videoId = req.params.id;
-        const { text } = req.body;
-        
-        if (!userId) {
-            return this.sendError(res, 'Требуется авторизация', 401);
-        }
-        
-        if (!text || text.trim().length === 0) {
-            return this.sendError(res, 'Комментарий не может быть пустым', 400);
-        }
-        
-        if (!this.videos[videoId]) {
-            return this.sendError(res, 'Видео не найдено', 404);
-        }
-        
-        const commentId = this.generateId();
-        
-        this.comments[commentId] = {
-            id: commentId,
-            videoId,
-            userId,
-            text: text.trim(),
-            likes: 0,
-            createdAt: Date.now()
-        };
-        
-        this.saveToFile('comments.json', this.comments);
-        
-        const author = this.users[userId];
-        const commentWithAuthor = {
-            ...this.comments[commentId],
-            author: {
-                id: author.id,
-                username: author.username,
-                avatar: author.avatar
-            }
-        };
-        
-        this.sendSuccess(res, { comment: commentWithAuthor });
-    }
-    
-    likeComment(req, res) {
-        const userId = req.userId;
-        const commentId = req.params.id;
-        
-        if (!userId) {
-            return this.sendError(res, 'Требуется авторизация', 401);
-        }
-        
-        if (!this.comments[commentId]) {
-            return this.sendError(res, 'Комментарий не найден', 404);
-        }
-        
-        this.comments[commentId].likes = (this.comments[commentId].likes || 0) + 1;
-        this.saveToFile('comments.json', this.comments);
-        
-        this.sendSuccess(res, {
-            likes: this.comments[commentId].likes
-        });
-    }
-    
-    // ===== КАНАЛЫ И ПОДПИСКИ =====
-    
-    getChannel(req, res) {
-        const channelId = req.params.id;
-        const channel = this.users[channelId];
-        
-        if (!channel) {
-            return this.sendError(res, 'Канал не найден', 404);
-        }
-        
-        const { password, token, tokenExpires, ...channelWithoutSensitive } = channel;
-        
-        // Получаем видео канала
-        const channelVideos = Object.values(this.videos)
-            .filter(video => video.channelId === channelId && video.visibility === 'public')
-            .sort((a, b) => b.createdAt - a.createdAt);
-        
-        this.sendSuccess(res, {
-            channel: channelWithoutSensitive,
-            videos: channelVideos
-        });
-    }
-    
-    getSubscriptions(req, res) {
-        const userId = req.userId;
-        
-        if (!userId) {
-            return this.sendError(res, 'Требуется авторизация', 401);
-        }
-        
-        // Получаем подписки пользователя
-        const userSubscriptions = Object.values(this.subscriptions)
-            .filter(sub => sub.userId === userId)
-            .map(sub => {
-                const channel = this.users[sub.channelId];
-                return {
-                    id: channel.id,
-                    username: channel.username,
-                    avatar: channel.avatar,
-                    subscribers: channel.subscribers || 0,
-                    subscribedAt: sub.createdAt
-                };
-            });
-        
-        this.sendSuccess(res, { subscriptions: userSubscriptions });
-    }
-    
-    subscribe(req, res) {
-        const userId = req.userId;
-        const channelId = req.params.id;
-        
-        if (!userId) {
-            return this.sendError(res, 'Требуется авторизация', 401);
-        }
-        
-        if (!this.users[channelId]) {
-            return this.sendError(res, 'Канал не найден', 404);
-        }
-        
-        if (userId === channelId) {
-            return this.sendError(res, 'Нельзя подписаться на себя', 400);
-        }
-        
-        const subscriptionKey = `${userId}_${channelId}`;
-        let subscribed = false;
-        
-        if (this.subscriptions[subscriptionKey]) {
-            // Отписываемся
-            delete this.subscriptions[subscriptionKey];
-            this.users[channelId].subscribers = Math.max(0, (this.users[channelId].subscribers || 0) - 1);
-        } else {
-            // Подписываемся
-            this.subscriptions[subscriptionKey] = {
-                userId,
-                channelId,
-                createdAt: Date.now()
-            };
-            
-            this.users[channelId].subscribers = (this.users[channelId].subscribers || 0) + 1;
-            subscribed = true;
-        }
-        
-        this.saveToFile('subscriptions.json', this.subscriptions);
-        this.saveToFile('users.json', this.users);
-        
-        this.sendSuccess(res, {
-            subscribed,
-            subscribers: this.users[channelId].subscribers
-        });
-    }
-    
-    // ===== СТАТИСТИКА =====
-    
     getStats(req, res) {
         const stats = {
             totalUsers: Object.keys(this.users).length,
             totalVideos: Object.keys(this.videos).length,
             totalComments: Object.keys(this.comments).length,
-            totalSubscriptions: Object.keys(this.subscriptions).length,
-            totalViews: Object.values(this.videos).reduce((sum, video) => sum + (video.views || 0), 0),
-            totalLikes: Object.values(this.videos).reduce((sum, video) => sum + (video.likes || 0), 0),
             serverUptime: process.uptime(),
             timestamp: Date.now()
         };
         
         this.sendSuccess(res, { stats });
     }
+    
+    healthCheck(req, res) {
+        this.sendSuccess(res, { status: 'ok', timestamp: Date.now() });
+    }
+    
+    start() {
+        const server = http.createServer((req, res) => {
+            const url = new URL(req.url, `http://${req.headers.host}`);
+            
+            if (url.pathname.startsWith('/api/')) {
+                this.handleAPI(req, res, url);
+            } else {
+                this.serveStatic(req, res, url);
+            }
+        });
+        
+        server.listen(this.port, () => {
+            console.log(`
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║   🎬 USTube Server запущен!                                 ║
+║                                                              ║
+║   🔗 Порт: ${this.port}                                   ║
+║                                                              ║
+║   📊 Статистика:                                            ║
+║   👤 Пользователей: ${Object.keys(this.users).length}                          ║
+║   🎥 Видео: ${Object.keys(this.videos).length}                            ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+            `);
+        });
+    }
 }
 
 // Запуск сервера
 const PORT = process.env.PORT || 3000;
-const server = new USTubeServer(PORT);
-
-// Обработка завершения
-process.on('SIGINT', () => {
-    console.log('\n👋 Сервер завершает работу...');
-    process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-    console.log('\n👋 Сервер завершает работу...');
-    process.exit(0);
-});
+new USTubeServer(PORT);
