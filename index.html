@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>UsTube — Современная платформа для видео</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>▶️</text></svg>">
     <style>
         /* ===== СБРОС И БАЗОВЫЕ СТИЛИ ===== */
         * {
@@ -19,64 +20,34 @@
             --primary-dark: #0F0F0F;
             --surface-dark: #212121;
             --surface-light: #383838;
-            --surface-lighter: #717171;
             --text-primary: #FFFFFF;
             --text-secondary: #AAAAAA;
-            --text-disabled: #717171;
             --border-color: #303030;
-            --hover-color: rgba(255, 255, 255, 0.1);
-            --active-color: rgba(255, 0, 0, 0.1);
-            
-            /* Градиенты */
-            --gradient-primary: linear-gradient(135deg, #FF0000 0%, #CC0000 100%);
-            --gradient-dark: linear-gradient(135deg, #0F0F0F 0%, #1A1A1A 100%);
             
             /* Анимации */
             --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
             --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
-            --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
             
             /* Скругления */
-            --radius-xs: 4px;
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
-            --radius-xl: 20px;
             --radius-full: 9999px;
             
             /* Отступы */
-            --space-xs: 4px;
             --space-sm: 8px;
             --space-md: 16px;
             --space-lg: 24px;
             --space-xl: 32px;
         }
 
-        /* Светлая тема */
-        [data-theme="light"] {
-            --primary-red: #FF0000;
-            --primary-dark: #FFFFFF;
-            --surface-dark: #F9F9F9;
-            --surface-light: #F0F0F0;
-            --surface-lighter: #E5E5E5;
-            --text-primary: #0F0F0F;
-            --text-secondary: #606060;
-            --text-disabled: #909090;
-            --border-color: #E0E0E0;
-            --hover-color: rgba(0, 0, 0, 0.05);
-            --active-color: rgba(255, 0, 0, 0.08);
-            
-            --gradient-dark: linear-gradient(135deg, #FFFFFF 0%, #F5F5F5 100%);
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background-color: var(--primary-dark);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--primary-dark);
             color: var(--text-primary);
             line-height: 1.5;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
         }
 
         /* ===== КОМПОНЕНТЫ ===== */
@@ -89,19 +60,13 @@
             border: none;
             border-radius: var(--radius-full);
             font-weight: 500;
-            font-size: 14px;
             cursor: pointer;
             transition: all var(--transition-fast);
-            white-space: nowrap;
         }
 
         .btn-primary {
-            background: var(--gradient-primary);
+            background: var(--primary-red);
             color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-1px);
         }
 
         .btn-secondary {
@@ -109,28 +74,8 @@
             color: var(--text-primary);
         }
 
-        .btn-secondary:hover {
-            background: var(--surface-lighter);
-        }
-
-        .input {
-            width: 100%;
-            padding: var(--space-md) var(--space-lg);
-            background: var(--surface-dark);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-full);
-            color: var(--text-primary);
-            font-size: 16px;
-            transition: all var(--transition-fast);
-        }
-
-        .input:focus {
-            outline: none;
-            border-color: var(--primary-red);
-        }
-
-        /* ===== НАВИГАЦИЯ ===== */
-        .navbar {
+        /* Шапка */
+        .header {
             position: fixed;
             top: 0;
             left: 0;
@@ -151,13 +96,10 @@
             gap: var(--space-sm);
             font-size: 20px;
             font-weight: 700;
-            color: var(--text-primary);
-            text-decoration: none;
         }
 
         .logo-icon {
             color: var(--primary-red);
-            font-size: 24px;
         }
 
         .search-container {
@@ -170,38 +112,17 @@
             gap: var(--space-sm);
         }
 
-        .search-btn {
-            width: 64px;
-            background: var(--surface-light);
+        .search-input {
+            flex: 1;
+            padding: var(--space-sm) var(--space-lg);
+            background: var(--surface-dark);
             border: 1px solid var(--border-color);
-            border-radius: 0 var(--radius-full) var(--radius-full) 0;
-        }
-
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: var(--space-sm);
-        }
-
-        .avatar {
-            width: 32px;
-            height: 32px;
             border-radius: var(--radius-full);
-            background: var(--primary-red);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 16px;
         }
 
-        /* ===== ОСНОВНОЙ КОНТЕНТ ===== */
-        .main-content {
-            margin-top: 56px;
-            padding: var(--space-lg);
-        }
-
+        /* Сетка видео */
         .videos-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -210,12 +131,8 @@
         }
 
         .video-card {
-            position: relative;
-            background: transparent;
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            transition: all var(--transition-normal);
             cursor: pointer;
+            transition: transform var(--transition-normal);
         }
 
         .video-card:hover {
@@ -229,17 +146,13 @@
             background: var(--surface-light);
             border-radius: var(--radius-md);
             overflow: hidden;
+            margin-bottom: var(--space-sm);
         }
 
         .video-thumbnail img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform var(--transition-normal);
-        }
-
-        .video-card:hover .video-thumbnail img {
-            transform: scale(1.05);
         }
 
         .video-duration {
@@ -249,34 +162,13 @@
             background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 2px 6px;
-            border-radius: var(--radius-xs);
+            border-radius: var(--radius-sm);
             font-size: 12px;
             font-weight: 500;
         }
 
-        .video-info {
-            padding: var(--space-sm) 0;
-        }
-
-        .video-title {
-            font-weight: 500;
-            font-size: 16px;
-            line-height: 1.4;
-            margin-bottom: var(--space-xs);
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .video-meta {
-            color: var(--text-secondary);
-            font-size: 14px;
-            line-height: 1.4;
-        }
-
-        /* ===== МОДАЛЬНЫЕ ОКНА ===== */
-        .modal {
+        /* Модальные окна */
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -290,72 +182,19 @@
             padding: var(--space-md);
         }
 
-        .modal-content {
+        .modal {
             background: var(--surface-dark);
             border-radius: var(--radius-lg);
             padding: var(--space-xl);
-            max-width: 500px;
+            max-width: 480px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--space-lg);
-        }
-
-        .modal-title {
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 24px;
-            padding: var(--space-xs);
-        }
-
-        .form-group {
-            margin-bottom: var(--space-lg);
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: var(--space-sm);
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
-        /* ===== СТРАНИЦА ВИДЕО ===== */
-        .video-page {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .video-player-container {
-            position: relative;
-            width: 100%;
-            background: #000;
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            margin-bottom: var(--space-lg);
-        }
-
-        .video-player {
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            background: #000;
-        }
-
-        /* ===== АДАПТИВНОСТЬ ===== */
+        /* Адаптивность */
         @media (max-width: 768px) {
-            .navbar {
+            .header {
                 padding: 0 var(--space-sm);
             }
             
@@ -363,111 +202,20 @@
                 display: none;
             }
             
-            .main-content {
-                padding: var(--space-md);
-            }
-            
             .videos-grid {
                 grid-template-columns: 1fr;
-                gap: var(--space-md);
             }
         }
 
         .hidden {
             display: none !important;
         }
-
-        .text-center {
-            text-align: center;
-        }
-
-        .text-truncate {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .flex {
-            display: flex;
-        }
-
-        .items-center {
-            align-items: center;
-        }
-
-        .justify-between {
-            justify-content: space-between;
-        }
-
-        .gap-sm {
-            gap: var(--space-sm);
-        }
-
-        .gap-md {
-            gap: var(--space-md);
-        }
-
-        .gap-lg {
-            gap: var(--space-lg);
-        }
-
-        .w-full {
-            width: 100%;
-        }
-
-        .mt-sm {
-            margin-top: var(--space-sm);
-        }
-
-        .mt-md {
-            margin-top: var(--space-md);
-        }
-
-        .mt-lg {
-            margin-top: var(--space-lg);
-        }
-
-        .mb-sm {
-            margin-bottom: var(--space-sm);
-        }
-
-        .mb-md {
-            margin-bottom: var(--space-md);
-        }
-
-        .mb-lg {
-            margin-bottom: var(--space-lg);
-        }
-
-        /* Скелетон */
-        .skeleton {
-            background: linear-gradient(90deg, var(--surface-light) 25%, var(--surface-lighter) 50%, var(--surface-light) 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-            border-radius: var(--radius-sm);
-        }
-
-        .skeleton-video {
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            margin-bottom: var(--space-sm);
-        }
-
-        .skeleton-text {
-            height: 16px;
-            margin-bottom: var(--space-xs);
-        }
-
-        @keyframes loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
     </style>
 </head>
 <body>
-    <!-- Навигация -->
-    <nav class="navbar">
-        <a href="#" class="logo" onclick="UsTube.goHome()">
+    <!-- Шапка -->
+    <header class="header">
+        <a href="#" class="logo" onclick="UsTube.goHome(); return false;">
             <span class="logo-icon">▶️</span>
             <span>UsTube</span>
         </a>
@@ -475,97 +223,115 @@
         <div class="search-container">
             <div class="search-wrapper">
                 <input type="text" 
-                       class="input search-input" 
+                       class="search-input" 
                        id="searchInput"
-                       placeholder="Поиск видео...">
-                <button class="btn btn-secondary search-btn" onclick="UsTube.search()">
+                       placeholder="Поиск видео..."
+                       onkeydown="if(event.key === 'Enter') UsTube.search()">
+                <button class="btn btn-secondary" onclick="UsTube.search()">
                     🔍
                 </button>
             </div>
         </div>
         
-        <div class="user-menu">
-            <button class="btn btn-secondary" onclick="UsTube.showUploadModal()">📤 Загрузить</button>
-            <div class="avatar" id="userAvatar" onclick="UsTube.toggleUserMenu()">
-                ?
-            </div>
-        </div>
-    </nav>
+        <button class="btn btn-primary" onclick="UsTube.showUploadModal()">
+            📤 Загрузить
+        </button>
+        
+        <button class="btn btn-secondary" onclick="UsTube.showAuthModal()" id="authBtn">
+            👤 Войти
+        </button>
+    </header>
 
     <!-- Основной контент -->
-    <div class="main-content" id="mainContent">
-        <!-- Динамический контент -->
+    <main style="margin-top: 70px; padding: var(--space-lg);">
         <div id="appContent">
-            <div class="fade-in">
-                <h1 class="mb-lg">🎬 UsTube Official</h1>
-                <div class="flex gap-sm mb-lg">
-                    <button class="btn btn-secondary" onclick="UsTube.loadVideos('newest')">Новинки</button>
-                    <button class="btn btn-secondary" onclick="UsTube.loadVideos('popular')">Популярные</button>
-                    <button class="btn btn-secondary" onclick="UsTube.showShorts()">Shorts</button>
-                </div>
-                <div id="videosContainer" class="videos-grid">
-                    <!-- Видео загружаются здесь -->
-                </div>
-            </div>
+            <!-- Контент загружается динамически -->
         </div>
-    </div>
+    </main>
 
     <!-- Модальное окно авторизации -->
-    <div class="modal hidden" id="authModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Вход в UsTube</h2>
-                <button class="modal-close" onclick="UsTube.hideAuthModal()">×</button>
+    <div class="modal-overlay hidden" id="authModal">
+        <div class="modal">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);">
+                <h2>Вход в UsTube</h2>
+                <button onclick="UsTube.hideAuthModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">×</button>
             </div>
             
             <div id="loginForm">
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="input" id="loginEmail" placeholder="example@email.com">
+                <div style="margin-bottom: var(--space-lg);">
+                    <div style="margin-bottom: var(--space-sm); color: var(--text-secondary);">Email</div>
+                    <input type="email" 
+                           class="search-input" 
+                           id="loginEmail"
+                           placeholder="example@email.com"
+                           style="width: 100%;">
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Пароль</label>
-                    <input type="password" class="input" id="loginPassword" placeholder="Ваш пароль">
+                <div style="margin-bottom: var(--space-lg);">
+                    <div style="margin-bottom: var(--space-sm); color: var(--text-secondary);">Пароль</div>
+                    <input type="password" 
+                           class="search-input" 
+                           id="loginPassword"
+                           placeholder="Ваш пароль"
+                           style="width: 100%;">
                 </div>
                 
-                <div class="form-group">
-                    <button class="btn btn-primary w-full" onclick="UsTube.login()">
-                        Войти
-                    </button>
-                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="UsTube.login()">
+                    Войти
+                </button>
                 
-                <div class="text-center mt-md">
-                    <span class="text-secondary">Нет аккаунта? </span>
+                <div style="text-align: center; margin-top: var(--space-lg);">
+                    <span style="color: var(--text-secondary);">Нет аккаунта? </span>
                     <a href="#" onclick="UsTube.showRegisterForm()" style="color: var(--primary-red);">
                         Зарегистрироваться
                     </a>
                 </div>
+                
+                <!-- Список демо аккаунтов -->
+                <div style="margin-top: var(--space-xl); padding-top: var(--space-lg); border-top: 1px solid var(--border-color);">
+                    <div style="color: var(--text-secondary); margin-bottom: var(--space-sm);">Демо аккаунты:</div>
+                    <div style="font-size: 14px; color: var(--text-secondary);">
+                        <div>👑 admin@ustube.com / admin123</div>
+                        <div>💰 mrbeast@ustube.com / mrbeast123</div>
+                        <div>🎮 a4@ustube.com / a4123456</div>
+                        <div>😂 grent@ustube.com / grent1234</div>
+                    </div>
+                </div>
             </div>
             
             <div id="registerForm" class="hidden">
-                <div class="form-group">
-                    <label class="form-label">Имя пользователя</label>
-                    <input type="text" class="input" id="registerUsername" placeholder="Ваше имя">
+                <div style="margin-bottom: var(--space-lg);">
+                    <div style="margin-bottom: var(--space-sm); color: var(--text-secondary);">Имя пользователя</div>
+                    <input type="text" 
+                           class="search-input" 
+                           id="registerUsername"
+                           placeholder="Ваше имя"
+                           style="width: 100%;">
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="input" id="registerEmail" placeholder="example@email.com">
+                <div style="margin-bottom: var(--space-lg);">
+                    <div style="margin-bottom: var(--space-sm); color: var(--text-secondary);">Email</div>
+                    <input type="email" 
+                           class="search-input" 
+                           id="registerEmail"
+                           placeholder="example@email.com"
+                           style="width: 100%;">
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Пароль</label>
-                    <input type="password" class="input" id="registerPassword" placeholder="Придумайте пароль">
+                <div style="margin-bottom: var(--space-lg);">
+                    <div style="margin-bottom: var(--space-sm); color: var(--text-secondary);">Пароль</div>
+                    <input type="password" 
+                           class="search-input" 
+                           id="registerPassword"
+                           placeholder="Придумайте пароль"
+                           style="width: 100%;">
                 </div>
                 
-                <div class="form-group">
-                    <button class="btn btn-primary w-full" onclick="UsTube.register()">
-                        Зарегистрироваться
-                    </button>
-                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="UsTube.register()">
+                    Зарегистрироваться
+                </button>
                 
-                <div class="text-center mt-md">
+                <div style="text-align: center; margin-top: var(--space-lg);">
                     <a href="#" onclick="UsTube.showLoginForm()" style="color: var(--primary-red);">
                         ← Вернуться к входу
                     </a>
@@ -575,492 +341,315 @@
     </div>
 
     <!-- Модальное окно загрузки видео -->
-    <div class="modal hidden" id="uploadModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Загрузить видео</h2>
-                <button class="modal-close" onclick="UsTube.hideUploadModal()">×</button>
+    <div class="modal-overlay hidden" id="uploadModal">
+        <div class="modal">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);">
+                <h2>Загрузить видео</h2>
+                <button onclick="UsTube.hideUploadModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">×</button>
             </div>
             
-            <div id="uploadArea" style="border: 2px dashed var(--border-color); border-radius: var(--radius-lg); padding: var(--space-2xl); text-align: center; cursor: pointer; margin-bottom: var(--space-lg);"
+            <div style="border: 2px dashed var(--border-color); border-radius: var(--radius-lg); padding: var(--space-xl); text-align: center; margin-bottom: var(--space-lg); cursor: pointer;"
                  onclick="document.getElementById('videoFile').click()"
-                 ondragover="event.preventDefault(); this.style.borderColor='var(--primary-red)';"
-                 ondragleave="this.style.borderColor='var(--border-color)';"
-                 ondrop="UsTube.handleVideoDrop(event)">
+                 id="uploadArea">
                 <div style="font-size: 48px; margin-bottom: var(--space-md);">📤</div>
-                <h3>Перетащите видео сюда</h3>
-                <p style="color: var(--text-secondary); margin: var(--space-sm) 0;">
-                    Или нажмите для выбора файла
-                </p>
+                <h3>Выберите видео файл</h3>
+                <p style="color: var(--text-secondary);">Нажмите для выбора или перетащите файл</p>
                 <input type="file" id="videoFile" accept="video/*" style="display: none;" onchange="UsTube.handleVideoSelect(event)">
             </div>
             
             <div id="uploadForm" class="hidden">
-                <div class="form-group">
-                    <label class="form-label">Название видео</label>
-                    <input type="text" class="input" id="videoTitle" placeholder="Введите название">
+                <div style="margin-bottom: var(--space-lg);">
+                    <div style="margin-bottom: var(--space-sm); color: var(--text-secondary);">Название видео</div>
+                    <input type="text" 
+                           class="search-input" 
+                           id="videoTitle"
+                           placeholder="Введите название"
+                           style="width: 100%;">
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Описание</label>
-                    <textarea class="input" id="videoDescription" rows="3" placeholder="Расскажите о видео" style="border-radius: var(--radius-md); resize: vertical;"></textarea>
+                <div style="margin-bottom: var(--space-lg);">
+                    <div style="margin-bottom: var(--space-sm); color: var(--text-secondary);">Описание</div>
+                    <textarea class="search-input" 
+                              id="videoDescription"
+                              placeholder="Расскажите о вашем видео"
+                              style="width: 100%; height: 100px; resize: vertical;"></textarea>
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Категория</label>
-                    <select class="input" id="videoCategory" style="border-radius: var(--radius-md);">
+                <div style="margin-bottom: var(--space-lg);">
+                    <div style="margin-bottom: var(--space-sm); color: var(--text-secondary);">Категория</div>
+                    <select class="search-input" id="videoCategory" style="width: 100%;">
                         <option value="">Выберите категорию</option>
-                        <option value="Развлечения">Развлечения</option>
-                        <option value="Образование">Образование</option>
-                        <option value="Музыка">Музыка</option>
-                        <option value="Игры">Игры</option>
-                        <option value="Спорт">Спорт</option>
+                        <option value="entertainment">Развлечения</option>
+                        <option value="music">Музыка</option>
+                        <option value="gaming">Игры</option>
+                        <option value="education">Образование</option>
                     </select>
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Теги (через запятую)</label>
-                    <input type="text" class="input" id="videoTags" placeholder="видео, развлечение, приколы">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">
-                        <input type="checkbox" id="isShort"> Это короткое видео (Shorts)
-                    </label>
-                </div>
-                
-                <button class="btn btn-primary w-full" onclick="UsTube.uploadVideo()" id="uploadBtn">
+                <button class="btn btn-primary" style="width: 100%;" onclick="UsTube.uploadVideo()">
                     Опубликовать видео
-                </button>
-            </div>
-            
-            <!-- Редактор видео -->
-            <div id="videoEditor" class="hidden">
-                <h3 style="margin-bottom: var(--space-lg);">✂️ Редактор видео</h3>
-                
-                <div style="background: var(--primary-dark); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-lg);">
-                    <video id="editorPreview" controls style="width: 100%; border-radius: var(--radius-sm);"></video>
-                </div>
-                
-                <div class="editor-controls" style="display: flex; gap: var(--space-sm); flex-wrap: wrap; margin-bottom: var(--space-lg);">
-                    <button class="btn btn-secondary" onclick="UsTube.trimVideo()">
-                        <span>✂️</span> Обрезать
-                    </button>
-                    <button class="btn btn-secondary" onclick="UsTube.addText()">
-                        <span>📝</span> Текст
-                    </button>
-                    <button class="btn btn-secondary" onclick="UsTube.addMusic()">
-                        <span>🎵</span> Музыка
-                    </button>
-                    <button class="btn btn-secondary" onclick="UsTube.addFilter()">
-                        <span>🎨</span> Фильтр
-                    </button>
-                </div>
-                
-                <button class="btn btn-primary w-full" onclick="UsTube.finishEditing()">
-                    Завершить редактирование
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Модальное окно настроек канала -->
-    <div class="modal hidden" id="channelModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">⚙️ Настройки канала</h2>
-                <button class="modal-close" onclick="UsTube.hideChannelModal()">×</button>
+    <!-- Админ панель -->
+    <div class="modal-overlay hidden" id="adminModal">
+        <div class="modal" style="max-width: 800px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);">
+                <h2>🔧 Админ панель UsTube</h2>
+                <button onclick="UsTube.hideAdminModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer;">×</button>
             </div>
             
-            <div class="text-center mb-lg">
-                <div id="channelAvatar" class="avatar" style="width: 100px; height: 100px; font-size: 36px; margin: 0 auto var(--space-md); cursor: pointer;" 
-                     onclick="document.getElementById('avatarUpload').click()">
-                    👤
-                </div>
-                <input type="file" id="avatarUpload" accept="image/*" style="display: none;" onchange="UsTube.handleAvatarUpload(event)">
-                
-                <div id="channelBanner" style="height: 150px; background: var(--surface-light); border-radius: var(--radius-md); margin-bottom: var(--space-md); cursor: pointer; display: flex; align-items: center; justify-content: center;"
-                     onclick="document.getElementById('bannerUpload').click()">
-                    <span style="color: var(--text-secondary);">🏞️ Нажмите чтобы загрузить баннер</span>
-                </div>
-                <input type="file" id="bannerUpload" accept="image/*" style="display: none;" onchange="UsTube.handleBannerUpload(event)">
+            <div id="adminContent">
+                <!-- Контент админ панели -->
             </div>
-            
-            <div class="form-group">
-                <label class="form-label">Название канала</label>
-                <input type="text" class="input" id="channelName" placeholder="Название вашего канала">
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Описание канала</label>
-                <textarea class="input" id="channelBio" rows="4" placeholder="Расскажите о своем канале" style="border-radius: var(--radius-md); resize: vertical;"></textarea>
-            </div>
-            
-            <button class="btn btn-primary w-full" onclick="UsTube.saveChannelSettings()">
-                Сохранить изменения
-            </button>
         </div>
     </div>
 
     <script>
-        const UsTube = {
-            // Конфигурация
-            API_URL: 'http://localhost:3000/api',
+        // API URL
+        const API_URL = 'http://localhost:3000/api';
+        
+        // Глобальный объект UsTube
+        window.UsTube = {
             currentUser: null,
-            currentVideo: null,
+            currentPage: 'home',
             
             // Инициализация
-            async init() {
-                this.loadHomePage();
+            init() {
                 this.checkAuth();
-                this.setupEventListeners();
-                console.log('🎬 UsTube инициализирован');
+                this.loadHomePage();
+                this.loadDemoVideos();
             },
             
             // Проверка авторизации
-            async checkAuth() {
+            checkAuth() {
                 const user = localStorage.getItem('ustube_user');
                 if (user) {
                     this.currentUser = JSON.parse(user);
-                    this.updateUserUI();
+                    this.updateAuthUI();
                 }
             },
             
-            updateUserUI() {
-                const avatar = document.getElementById('userAvatar');
+            updateAuthUI() {
+                const authBtn = document.getElementById('authBtn');
                 if (this.currentUser) {
-                    avatar.textContent = this.currentUser.username.charAt(0).toUpperCase();
-                    if (this.currentUser.isAdmin) {
-                        avatar.style.background = 'linear-gradient(135deg, #FF0000, #FF6B6B)';
-                    }
+                    authBtn.textContent = this.currentUser.username;
+                    authBtn.onclick = () => this.showUserMenu();
+                } else {
+                    authBtn.textContent = '👤 Войти';
+                    authBtn.onclick = () => this.showAuthModal();
                 }
             },
             
-            // Навигация
-            goHome() {
-                this.loadHomePage();
-            },
-            
-            async loadHomePage() {
-                const html = `
-                    <div class="fade-in">
-                        <div class="flex items-center justify-between mb-lg">
-                            <h1>🎬 UsTube Official</h1>
-                            ${this.currentUser?.isAdmin ? 
-                                `<button class="btn btn-secondary" onclick="UsTube.showAdminPanel()">🔧 Админ панель</button>` : ''}
-                        </div>
-                        
-                        <div class="flex gap-sm mb-lg">
-                            <button class="btn btn-secondary" onclick="UsTube.loadVideos('newest')">Новинки</button>
-                            <button class="btn btn-secondary" onclick="UsTube.loadVideos('popular')">Популярные</button>
-                            <button class="btn btn-secondary" onclick="UsTube.showShorts()">Shorts</button>
-                            <button class="btn btn-secondary" onclick="UsTube.showRecommendations()">Рекомендации</button>
-                        </div>
-                        
-                        <div id="videosContainer">
-                            ${this.getSkeletonVideos(6)}
-                        </div>
+            // Главная страница
+            loadHomePage() {
+                const content = `
+                    <h1 style="margin-bottom: var(--space-lg);">🎬 Рекомендованные видео</h1>
+                    <div id="videosContainer" class="videos-grid">
+                        <!-- Видео загружаются динамически -->
                     </div>
                 `;
                 
-                document.getElementById('appContent').innerHTML = html;
-                await this.loadVideos('newest');
+                document.getElementById('appContent').innerHTML = content;
+                this.loadVideos();
             },
             
-            getSkeletonVideos(count) {
-                let html = '<div class="videos-grid">';
-                for(let i = 0; i < count; i++) {
-                    html += `
-                        <div class="video-card">
-                            <div class="video-thumbnail skeleton"></div>
-                            <div class="video-info">
-                                <div class="skeleton-text skeleton w-full"></div>
-                                <div class="skeleton-text skeleton w-3/4"></div>
-                                <div class="skeleton-text skeleton w-1/2"></div>
-                            </div>
-                        </div>
-                    `;
-                }
-                html += '</div>';
-                return html;
-            },
-            
-            async loadVideos(sort = 'newest') {
+            // Загрузка видео
+            async loadVideos() {
                 try {
-                    const response = await fetch(`${this.API_URL}/videos?sort=${sort}&limit=20`);
+                    const response = await fetch(`${API_URL}/videos?limit=24`);
                     const videos = await response.json();
-                    
                     this.displayVideos(videos);
                 } catch (error) {
                     console.error('Ошибка загрузки видео:', error);
-                    this.showMessage('Ошибка загрузки видео', 'error');
+                    this.loadDemoVideos();
                 }
             },
             
+            // Демо видео на случай ошибки
+            loadDemoVideos() {
+                const demoVideos = [
+                    { id: '1', title: 'MrBeast: Я дал $100,000 моему подписчику', views: 12500000, duration: 582, channel: { name: 'Мистер Бист', avatar: '💰' }, thumbnailUrl: 'https://picsum.photos/300/169?random=1' },
+                    { id: '2', title: 'A4: Новый FNAF - ПРОХОЖДЕНИЕ', views: 8500000, duration: 3564, channel: { name: 'A4', avatar: '🎮' }, thumbnailUrl: 'https://picsum.photos/300/169?random=2' },
+                    { id: '3', title: 'Марк Робер: САМЫЙ БОЛЬШОЙ СЛАЙМ', views: 9500000, duration: 932, channel: { name: 'Марк Робер', avatar: '🔬' }, thumbnailUrl: 'https://picsum.photos/300/169?random=3' },
+                    { id: '4', title: 'Глент: РАССЛЕДОВАНИЕ', views: 6500000, duration: 1245, channel: { name: 'Глент', avatar: '😂' }, thumbnailUrl: 'https://picsum.photos/300/169?random=4' },
+                    { id: '5', title: 'UsTube: Как использовать платформу', views: 1500000, duration: 845, channel: { name: 'UsTube Official', avatar: '🎬' }, thumbnailUrl: 'https://picsum.photos/300/169?random=5' },
+                    { id: '6', title: 'BadComedian: Разбор нового фильма', views: 4500000, duration: 2845, channel: { name: 'BadComedian', avatar: '🎬' }, thumbnailUrl: 'https://picsum.photos/300/169?random=6' }
+                ];
+                
+                this.displayVideos(demoVideos);
+            },
+            
+            // Отображение видео
             displayVideos(videos) {
                 const container = document.getElementById('videosContainer');
-                if (!videos || videos.length === 0) {
-                    container.innerHTML = `
-                        <div class="text-center" style="padding: var(--space-2xl);">
-                            <div style="font-size: 48px; margin-bottom: var(--space-md);">🎬</div>
-                            <h3 class="mb-sm">Видео не найдены</h3>
-                            <p class="text-secondary mb-lg">Будьте первым, кто загрузит видео!</p>
-                            <button class="btn btn-primary" onclick="UsTube.showUploadModal()">Загрузить видео</button>
-                        </div>
-                    `;
-                    return;
-                }
+                if (!container) return;
                 
-                let html = '<div class="videos-grid">';
+                let html = '';
                 
                 videos.forEach(video => {
-                    const views = this.formatNumber(video.views);
-                    const timeAgo = this.formatTimeAgo(video.createdAt);
+                    const views = this.formatNumber(video.views || 0);
+                    const duration = this.formatDuration(video.duration || 600);
                     
                     html += `
                         <div class="video-card" onclick="UsTube.watchVideo('${video.id}')">
                             <div class="video-thumbnail">
-                                <img src="${video.thumbnailUrl || 'https://via.placeholder.com/300x169/333/fff?text=UsTube'}" 
+                                <img src="${video.thumbnailUrl || 'https://picsum.photos/300/169?random=' + video.id}" 
                                      alt="${video.title}"
-                                     onerror="this.src='https://via.placeholder.com/300x169/333/fff?text=UsTube'">
-                                <div class="video-duration">${this.formatDuration(video.duration)}</div>
+                                     onerror="this.src='https://picsum.photos/300/169?random=${video.id}'">
+                                <div class="video-duration">${duration}</div>
                             </div>
-                            <div class="video-info">
-                                <h3 class="video-title">${video.title}</h3>
-                                <div class="video-meta">
-                                    ${views} просмотров • ${timeAgo}
+                            <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-sm);">
+                                <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-red); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                    ${video.channel?.avatar || '?'}
                                 </div>
-                                <div class="video-meta mt-sm">
-                                    <span style="color: ${video.channel?.isVerified ? 'var(--primary-red)' : 'inherit'}">
-                                        ${video.channelName}
-                                        ${video.channel?.isVerified ? ' ✓' : ''}
-                                    </span>
+                                <div style="flex: 1;">
+                                    <h4 style="margin-bottom: 4px; font-size: 14px; line-height: 1.4;">${video.title}</h4>
+                                    <div style="color: var(--text-secondary); font-size: 13px;">
+                                        ${video.channel?.name || 'Канал'}
+                                    </div>
+                                    <div style="color: var(--text-secondary); font-size: 13px;">
+                                        ${views} просмотров
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     `;
                 });
                 
-                html += '</div>';
                 container.innerHTML = html;
             },
             
             // Просмотр видео
             async watchVideo(videoId) {
                 try {
-                    const url = this.currentUser ? 
-                        `${this.API_URL}/videos/${videoId}?userId=${this.currentUser.id}` :
-                        `${this.API_URL}/videos/${videoId}`;
-                    
-                    const response = await fetch(url);
-                    this.currentVideo = await response.json();
+                    const response = await fetch(`${API_URL}/videos/${videoId}`);
+                    const video = await response.json();
                     
                     // Загружаем комментарии
-                    const commentsResponse = await fetch(`${this.API_URL}/videos/${videoId}/comments`);
+                    const commentsResponse = await fetch(`${API_URL}/comments/${videoId}`);
                     const comments = await commentsResponse.json();
                     
-                    // Проверяем подписку
-                    let isSubscribed = false;
-                    if (this.currentUser && this.currentVideo.channel?.id !== this.currentUser.id) {
-                        const subResponse = await fetch(`${this.API_URL}/subscribe/check?subscriberId=${this.currentUser.id}&channelId=${this.currentVideo.channel?.id}`);
-                        const subData = await subResponse.json();
-                        isSubscribed = subData.subscribed;
-                    }
-                    
-                    const html = `
-                        <div class="video-page">
-                            <button class="btn btn-secondary mb-lg" onclick="UsTube.goHome()">← Назад</button>
-                            
-                            <div class="video-player-container">
-                                <video class="video-player" controls autoplay>
-                                    <source src="${this.currentVideo.videoUrl || '#'}" type="video/mp4">
-                                    Ваш браузер не поддерживает видео.
-                                </video>
-                            </div>
-                            
-                            <h1 class="mb-sm">${this.currentVideo.title}</h1>
-                            <div class="video-meta mb-lg">
-                                ${this.formatNumber(this.currentVideo.views)} просмотров • ${this.formatTimeAgo(this.currentVideo.createdAt)}
-                            </div>
-                            
-                            <!-- Информация о канале -->
-                            <div style="background: var(--surface-dark); border-radius: var(--radius-lg); padding: var(--space-lg); margin-bottom: var(--space-xl);">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-md">
-                                        <div class="avatar" style="width: 60px; height: 60px; font-size: 24px;">
-                                            ${this.currentVideo.channel?.name?.charAt(0) || 'U'}
-                                        </div>
-                                        <div>
-                                            <div style="font-weight: 500; display: flex; align-items: center; gap: var(--space-xs);">
-                                                ${this.currentVideo.channel?.name}
-                                                ${this.currentVideo.channel?.isVerified ? '✓' : ''}
-                                            </div>
-                                            <div class="video-meta">
-                                                ${this.formatNumber(this.currentVideo.channel?.subscribers || 0)} подписчиков
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    ${this.currentUser && this.currentVideo.channel?.id !== this.currentUser.id ? `
-                                        <button class="btn ${isSubscribed ? 'btn-secondary' : 'btn-primary'}" 
-                                                id="subscribeBtn" 
-                                                onclick="UsTube.toggleSubscribe('${this.currentVideo.channel?.id}')">
-                                            ${isSubscribed ? 'Отписаться' : 'Подписаться'}
-                                        </button>
-                                    ` : ''}
-                                </div>
-                                
-                                ${this.currentVideo.channel?.bio ? `
-                                    <div class="mt-md">
-                                        <p style="color: var(--text-secondary);">${this.currentVideo.channel.bio}</p>
-                                    </div>
-                                ` : ''}
-                            </div>
-                            
-                            <!-- Описание -->
-                            <div style="background: var(--surface-dark); border-radius: var(--radius-lg); padding: var(--space-lg); margin-bottom: var(--space-xl);">
-                                <h3 class="mb-md">Описание</h3>
-                                <p style="color: var(--text-secondary); white-space: pre-wrap;">${this.currentVideo.description || 'Нет описания'}</p>
-                            </div>
-                            
-                            <!-- Комментарии -->
-                            <div style="background: var(--surface-dark); border-radius: var(--radius-lg); padding: var(--space-lg);">
-                                <h3 class="mb-lg">💬 Комментарии (${this.currentVideo.comments || 0})</h3>
-                                
-                                <!-- Форма комментария -->
-                                ${this.currentUser ? `
-                                    <div class="flex gap-md mb-lg">
-                                        <div class="avatar">
-                                            ${this.currentUser.username.charAt(0)}
-                                        </div>
-                                        <div style="flex: 1;">
-                                            <textarea id="commentText" 
-                                                      placeholder="Добавьте комментарий..."
-                                                      style="width: 100%; padding: var(--space-md); background: var(--primary-dark); border: 1px solid var(--border-color); border-radius: var(--radius-md); color: white; margin-bottom: var(--space-sm);"></textarea>
-                                            <button class="btn btn-primary" onclick="UsTube.addComment()">Отправить</button>
-                                        </div>
-                                    </div>
-                                ` : `
-                                    <div class="text-center mb-lg">
-                                        <p class="text-secondary mb-md">Войдите, чтобы оставить комментарий</p>
-                                        <button class="btn btn-primary" onclick="UsTube.showAuthModal()">Войти</button>
-                                    </div>
-                                `}
-                                
-                                <!-- Список комментариев -->
-                                <div id="commentsList">
-                                    ${comments.length > 0 ? 
-                                        comments.map(comment => `
-                                            <div class="flex gap-md mb-md" style="padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-color);">
-                                                <div class="avatar">
-                                                    ${comment.user?.username?.charAt(0) || 'A'}
-                                                </div>
-                                                <div style="flex: 1;">
-                                                    <div class="flex items-center gap-sm mb-xs">
-                                                        <span style="font-weight: 500;">${comment.user?.username || 'Аноним'}</span>
-                                                        <span class="text-secondary" style="font-size: 12px;">
-                                                            ${this.formatTimeAgo(comment.createdAt)}
-                                                        </span>
-                                                    </div>
-                                                    <p>${comment.text}</p>
-                                                </div>
-                                            </div>
-                                        `).join('') : 
-                                        '<p class="text-center text-secondary">Комментариев пока нет</p>'
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    document.getElementById('appContent').innerHTML = html;
-                    
+                    this.displayVideoPage(video, comments);
                 } catch (error) {
                     console.error('Ошибка загрузки видео:', error);
-                    this.showMessage('Не удалось загрузить видео', 'error');
-                    this.goHome();
+                    alert('Видео временно недоступно');
                 }
             },
             
-            // Shorts
-            async showShorts() {
-                try {
-                    const response = await fetch(`${this.API_URL}/shorts?limit=20`);
-                    const shorts = await response.json();
-                    
-                    const html = `
-                        <div class="fade-in">
-                            <div class="flex items-center justify-between mb-lg">
-                                <h1>🎥 Shorts - UsTube Official</h1>
-                                <button class="btn btn-secondary" onclick="UsTube.goHome()">← Назад</button>
+            // Страница видео
+            displayVideoPage(video, comments) {
+                const content = `
+                    <div style="max-width: 1280px; margin: 0 auto;">
+                        <!-- Видео плеер -->
+                        <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--space-lg);">
+                            <video controls style="width: 100%; height: 100%;">
+                                <source src="${video.videoUrl || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'}" type="video/mp4">
+                            </video>
+                        </div>
+                        
+                        <!-- Информация о видео -->
+                        <h1 style="margin-bottom: var(--space-sm);">${video.title}</h1>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg);">
+                            <div style="color: var(--text-secondary);">
+                                ${this.formatNumber(video.views)} просмотров • ${new Date(video.createdAt).toLocaleDateString()}
                             </div>
-                            
-                            <div id="shortsContainer">
-                                ${shorts.length > 0 ? 
-                                    this.displayShorts(shorts) : 
-                                    '<p class="text-center text-secondary">Shorts пока нет</p>'
-                                }
+                            <div style="display: flex; gap: var(--space-sm);">
+                                <button class="btn btn-secondary" onclick="UsTube.likeVideo('${video.id}', 1)">
+                                    👍 ${this.formatNumber(video.likes)}
+                                </button>
+                                <button class="btn btn-secondary" onclick="UsTube.likeVideo('${video.id}', -1)">
+                                    👎 ${this.formatNumber(video.dislikes)}
+                                </button>
+                                <button class="btn btn-secondary" onclick="UsTube.shareVideo()">
+                                    📤 Поделиться
+                                </button>
                             </div>
                         </div>
-                    `;
-                    
-                    document.getElementById('appContent').innerHTML = html;
-                } catch (error) {
-                    console.error('Ошибка загрузки шортсов:', error);
-                }
+                        
+                        <!-- Канал -->
+                        <div style="display: flex; align-items: center; gap: var(--space-md); padding: var(--space-md); background: var(--surface-dark); border-radius: var(--radius-lg); margin-bottom: var(--space-lg);">
+                            <div style="width: 60px; height: 60px; border-radius: 50%; background: var(--primary-red); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold;">
+                                ${video.channel?.avatar || '?'}
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; font-size: 18px;">${video.channel?.name || 'Канал'}</div>
+                                <div style="color: var(--text-secondary); margin-top: 2px;">
+                                    ${this.formatNumber(video.channel?.subscribers || 0)} подписчиков
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="UsTube.subscribeToChannel('${video.channel?.id}')">
+                                Подписаться
+                            </button>
+                        </div>
+                        
+                        <!-- Описание -->
+                        <div style="background: var(--surface-dark); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-xl);">
+                            <div style="color: var(--text-secondary); margin-bottom: var(--space-sm);">Описание</div>
+                            <p>${video.description || 'Описание отсутствует'}</p>
+                        </div>
+                        
+                        <!-- Комментарии -->
+                        <h2 style="margin-bottom: var(--space-lg);">💬 Комментарии (${video.comments || comments.length})</h2>
+                        
+                        <!-- Форма комментария -->
+                        <div style="display: flex; gap: var(--space-md); margin-bottom: var(--space-xl);">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-light); display: flex; align-items: center; justify-content: center;">
+                                ${this.currentUser?.username?.charAt(0) || '?'}
+                            </div>
+                            <input type="text" 
+                                   class="search-input" 
+                                   id="commentInput"
+                                   placeholder="Добавьте комментарий..."
+                                   style="flex: 1;"
+                                   onkeydown="if(event.key === 'Enter') UsTube.addComment('${video.id}')">
+                            <button class="btn btn-primary" onclick="UsTube.addComment('${video.id}')">
+                                Отправить
+                            </button>
+                        </div>
+                        
+                        <!-- Список комментариев -->
+                        <div id="commentsList">
+                            ${this.displayComments(comments)}
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('appContent').innerHTML = content;
             },
             
-            displayShorts(shorts) {
-                let html = '<div class="videos-grid">';
+            // Отображение комментариев
+            displayComments(comments) {
+                if (!comments || comments.length === 0) {
+                    return '<p style="color: var(--text-secondary); text-align: center; padding: var(--space-xl);">Комментариев пока нет</p>';
+                }
                 
-                shorts.forEach(short => {
+                let html = '';
+                comments.forEach(comment => {
                     html += `
-                        <div class="video-card" onclick="UsTube.watchVideo('${short.id}')">
-                            <div class="video-thumbnail" style="aspect-ratio: 9/16;">
-                                <img src="${short.thumbnailUrl || 'https://via.placeholder.com/169/300/333/fff?text=Short'}" 
-                                     alt="${short.title}">
-                                <div class="video-duration">SHORT</div>
+                        <div style="display: flex; gap: var(--space-md); padding: var(--space-md) 0; border-bottom: 1px solid var(--border-color);">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-light); display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                ${comment.username?.charAt(0) || '?'}
                             </div>
-                            <div class="video-info">
-                                <h3 class="video-title">${short.title}</h3>
-                                <div class="video-meta">
-                                    ${this.formatNumber(short.views)} просмотров
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; margin-bottom: 4px;">${comment.username || 'Пользователь'}</div>
+                                <p>${comment.text}</p>
+                                <div style="display: flex; gap: var(--space-md); margin-top: var(--space-sm);">
+                                    <button style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+                                        👍 ${comment.likes || 0}
+                                    </button>
+                                    <button style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+                                        Ответить
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     `;
                 });
                 
-                html += '</div>';
                 return html;
-            },
-            
-            // Рекомендации
-            async showRecommendations() {
-                try {
-                    const url = this.currentUser ? 
-                        `${this.API_URL}/recommendations?userId=${this.currentUser.id}` :
-                        `${this.API_URL}/recommendations`;
-                    
-                    const response = await fetch(url);
-                    const videos = await response.json();
-                    
-                    const html = `
-                        <div class="fade-in">
-                            <h1 class="mb-lg">✨ Рекомендовано для вас</h1>
-                            <div id="recommendationsContainer">
-                                ${videos.length > 0 ? 
-                                    this.displayVideos(videos) : 
-                                    '<p class="text-center text-secondary">Рекомендации появятся после просмотра видео</p>'
-                                }
-                            </div>
-                        </div>
-                    `;
-                    
-                    document.getElementById('appContent').innerHTML = html;
-                } catch (error) {
-                    console.error('Ошибка загрузки рекомендаций:', error);
-                }
             },
             
             // Поиск
@@ -1069,26 +658,16 @@
                 if (!query) return;
                 
                 try {
-                    const response = await fetch(`${this.API_URL}/search?q=${encodeURIComponent(query)}`);
+                    const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}&type=video`);
                     const results = await response.json();
                     
-                    const html = `
-                        <div class="fade-in">
-                            <div class="flex items-center justify-between mb-lg">
-                                <h1>🔍 Результаты поиска: "${query}"</h1>
-                                <button class="btn btn-secondary" onclick="UsTube.goHome()">← Назад</button>
-                            </div>
-                            
-                            <div id="searchResults">
-                                ${results.length > 0 ? 
-                                    this.displayVideos(results) : 
-                                    '<p class="text-center text-secondary">Ничего не найдено</p>'
-                                }
-                            </div>
-                        </div>
+                    const content = `
+                        <h1 style="margin-bottom: var(--space-lg);">🔍 Результаты поиска: "${query}"</h1>
+                        <div id="searchResults" class="videos-grid"></div>
                     `;
                     
-                    document.getElementById('appContent').innerHTML = html;
+                    document.getElementById('appContent').innerHTML = content;
+                    this.displayVideos(results);
                 } catch (error) {
                     console.error('Ошибка поиска:', error);
                 }
@@ -1120,12 +699,12 @@
                 const password = document.getElementById('loginPassword').value;
                 
                 if (!email || !password) {
-                    this.showMessage('Заполните все поля', 'error');
+                    alert('Заполните все поля');
                     return;
                 }
                 
                 try {
-                    const response = await fetch(`${this.API_URL}/login`, {
+                    const response = await fetch(`${API_URL}/login`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email, password })
@@ -1134,22 +713,26 @@
                     const data = await response.json();
                     
                     if (data.success) {
-                        this.currentUser = data.user;
                         localStorage.setItem('ustube_user', JSON.stringify(data.user));
-                        this.updateUserUI();
+                        this.currentUser = data.user;
+                        this.updateAuthUI();
                         this.hideAuthModal();
-                        this.showMessage('Вход выполнен успешно!', 'success');
+                        alert('Вход выполнен успешно!');
                         
-                        document.getElementById('loginEmail').value = '';
-                        document.getElementById('loginPassword').value = '';
-                        
-                        this.goHome();
+                        // Если это админ, показываем кнопку админ панели
+                        if (data.user.isAdmin) {
+                            const adminBtn = document.createElement('button');
+                            adminBtn.className = 'btn btn-secondary';
+                            adminBtn.innerHTML = '🔧 Админ';
+                            adminBtn.onclick = () => this.showAdminPanel();
+                            document.querySelector('.header').appendChild(adminBtn);
+                        }
                     } else {
-                        this.showMessage(data.error || 'Ошибка входа', 'error');
+                        alert(data.error || 'Ошибка входа');
                     }
                 } catch (error) {
                     console.error('Ошибка входа:', error);
-                    this.showMessage('Ошибка сервера', 'error');
+                    alert('Ошибка сервера');
                 }
             },
             
@@ -1159,12 +742,12 @@
                 const password = document.getElementById('registerPassword').value;
                 
                 if (!username || !email || !password) {
-                    this.showMessage('Заполните все поля', 'error');
+                    alert('Заполните все поля');
                     return;
                 }
                 
                 try {
-                    const response = await fetch(`${this.API_URL}/register`, {
+                    const response = await fetch(`${API_URL}/register`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ username, email, password })
@@ -1173,59 +756,14 @@
                     const data = await response.json();
                     
                     if (data.success) {
-                        this.showMessage('Регистрация успешна! Теперь войдите', 'success');
+                        alert('Регистрация успешна! Теперь войдите в аккаунт');
                         this.showLoginForm();
-                        
-                        document.getElementById('registerUsername').value = '';
-                        document.getElementById('registerEmail').value = '';
-                        document.getElementById('registerPassword').value = '';
                     } else {
-                        this.showMessage(data.error || 'Ошибка регистрации', 'error');
+                        alert(data.error || 'Ошибка регистрации');
                     }
                 } catch (error) {
                     console.error('Ошибка регистрации:', error);
-                    this.showMessage('Ошибка сервера', 'error');
-                }
-            },
-            
-            logout() {
-                localStorage.removeItem('ustube_user');
-                this.currentUser = null;
-                this.updateUserUI();
-                this.showMessage('Выход выполнен', 'success');
-                this.goHome();
-            },
-            
-            toggleUserMenu() {
-                if (!this.currentUser) {
-                    this.showAuthModal();
-                    return;
-                }
-                
-                // Простое меню пользователя
-                const actions = [
-                    { label: 'Мой канал', action: () => this.showChannel(this.currentUser.id) },
-                    { label: 'Настройки канала', action: () => this.showChannelSettings() },
-                    { separator: true },
-                    { label: 'Выйти', action: () => this.logout() }
-                ];
-                
-                // Показываем простое меню через prompt
-                let menu = 'Выберите действие:\n\n';
-                actions.forEach((action, index) => {
-                    if (action.separator) {
-                        menu += '────────────\n';
-                    } else {
-                        menu += `${index + 1}. ${action.label}\n`;
-                    }
-                });
-                
-                const choice = prompt(menu);
-                if (choice) {
-                    const index = parseInt(choice) - 1;
-                    if (index >= 0 && index < actions.length && !actions[index].separator) {
-                        actions[index].action();
-                    }
+                    alert('Ошибка сервера');
                 }
             },
             
@@ -1238,7 +776,6 @@
                 
                 document.getElementById('uploadModal').classList.remove('hidden');
                 document.getElementById('uploadForm').classList.add('hidden');
-                document.getElementById('videoEditor').classList.add('hidden');
             },
             
             hideUploadModal() {
@@ -1248,481 +785,312 @@
             handleVideoSelect(event) {
                 const file = event.target.files[0];
                 if (file) {
-                    this.processVideoFile(file);
-                }
-            },
-            
-            handleVideoDrop(event) {
-                event.preventDefault();
-                event.target.style.borderColor = 'var(--border-color)';
-                
-                const file = event.dataTransfer.files[0];
-                if (file) {
-                    this.processVideoFile(file);
-                }
-            },
-            
-            async processVideoFile(file) {
-                if (!file.type.startsWith('video/')) {
-                    this.showMessage('Выберите видео файл', 'error');
-                    return;
-                }
-                
-                document.getElementById('uploadForm').classList.remove('hidden');
-                document.getElementById('videoTitle').value = file.name.replace(/\.[^/.]+$/, "");
-                
-                // Показываем предпросмотр
-                const video = document.getElementById('editorPreview');
-                if (video) {
-                    video.src = URL.createObjectURL(file);
-                    video.load();
-                    document.getElementById('videoEditor').classList.remove('hidden');
+                    document.getElementById('uploadForm').classList.remove('hidden');
+                    document.getElementById('videoTitle').value = file.name.replace(/\.[^/.]+$/, "");
                 }
             },
             
             async uploadVideo() {
                 const title = document.getElementById('videoTitle').value.trim();
-                const description = document.getElementById('videoDescription').value;
+                const description = document.getElementById('videoDescription').value.trim();
                 const category = document.getElementById('videoCategory').value;
-                const tags = document.getElementById('videoTags').value;
-                const isShort = document.getElementById('isShort').checked;
                 
-                if (!title) {
-                    this.showMessage('Введите название видео', 'error');
+                if (!title || !category) {
+                    alert('Заполните обязательные поля');
                     return;
                 }
                 
-                const formData = new FormData();
-                formData.append('title', title);
-                formData.append('description', description);
-                formData.append('channelId', this.currentUser.id);
-                formData.append('category', category);
-                formData.append('tags', tags);
-                formData.append('isShort', isShort);
-                
-                // Добавляем видео файл
-                const videoFile = document.getElementById('videoFile').files[0];
-                if (videoFile) {
-                    formData.append('video', videoFile);
-                }
-                
                 try {
-                    const response = await fetch(`${this.API_URL}/upload/video`, {
+                    const videoData = {
+                        userId: this.currentUser.id,
+                        title,
+                        description,
+                        category,
+                        videoUrl: '/uploads/videos/demo.mp4',
+                        thumbnailUrl: `https://picsum.photos/1280/720?random=${Date.now()}`,
+                        duration: 600,
+                        tags: category
+                    };
+                    
+                    const response = await fetch(`${API_URL}/videos`, {
                         method: 'POST',
-                        body: formData
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(videoData)
                     });
                     
-                    const data = await response.json();
+                    const video = await response.json();
                     
-                    if (data.success) {
-                        this.showMessage('Видео успешно загружено!', 'success');
-                        setTimeout(() => {
-                            this.hideUploadModal();
-                            this.goHome();
-                        }, 1500);
-                    } else {
-                        this.showMessage('Ошибка загрузки видео', 'error');
-                    }
+                    this.hideUploadModal();
+                    alert('Видео успешно загружено!');
+                    this.goHome();
                 } catch (error) {
-                    console.error('Ошибка:', error);
-                    this.showMessage('Ошибка сервера', 'error');
+                    console.error('Ошибка загрузки:', error);
+                    alert('Ошибка загрузки видео');
                 }
             },
             
-            // Редактор видео
-            trimVideo() {
-                this.showMessage('Функция обрезки в разработке', 'info');
-            },
-            
-            addText() {
-                this.showMessage('Функция добавления текста в разработке', 'info');
-            },
-            
-            addMusic() {
-                this.showMessage('Функция добавления музыки в разработке', 'info');
-            },
-            
-            addFilter() {
-                this.showMessage('Функция фильтров в разработке', 'info');
-            },
-            
-            finishEditing() {
-                document.getElementById('videoEditor').classList.add('hidden');
-                document.getElementById('uploadForm').classList.remove('hidden');
-            },
-            
-            // Комментарии
-            async addComment() {
+            // Взаимодействия
+            async likeVideo(videoId, type) {
                 if (!this.currentUser) {
                     this.showAuthModal();
                     return;
                 }
                 
-                const text = document.getElementById('commentText').value.trim();
-                if (!text) return;
-                
-                if (!this.currentVideo) return;
-                
                 try {
-                    const response = await fetch(`${this.API_URL}/comments`, {
+                    await fetch(`${API_URL}/like`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            videoId: this.currentVideo.id,
+                            videoId,
                             userId: this.currentUser.id,
-                            text: text
+                            type
                         })
                     });
                     
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        document.getElementById('commentText').value = '';
-                        this.showMessage('Комментарий добавлен', 'success');
-                        
-                        // Добавляем комментарий в список
-                        const commentsList = document.getElementById('commentsList');
-                        if (commentsList) {
-                            const commentHtml = `
-                                <div class="flex gap-md mb-md" style="padding-bottom: var(--space-md); border-bottom: 1px solid var(--border-color);">
-                                    <div class="avatar">
-                                        ${this.currentUser.username.charAt(0)}
-                                    </div>
-                                    <div style="flex: 1;">
-                                        <div class="flex items-center gap-sm mb-xs">
-                                            <span style="font-weight: 500;">${this.currentUser.username}</span>
-                                            <span class="text-secondary" style="font-size: 12px;">
-                                                только что
-                                            </span>
-                                        </div>
-                                        <p>${text}</p>
-                                    </div>
-                                </div>
-                            `;
-                            commentsList.innerHTML = commentHtml + commentsList.innerHTML;
-                        }
-                    }
+                    alert(type === 1 ? 'Лайк добавлен!' : 'Дизлайк добавлен!');
                 } catch (error) {
                     console.error('Ошибка:', error);
-                    this.showMessage('Ошибка добавления комментария', 'error');
                 }
             },
             
-            // Подписки
-            async toggleSubscribe(channelId) {
+            async subscribeToChannel(channelId) {
                 if (!this.currentUser) {
                     this.showAuthModal();
                     return;
                 }
                 
                 try {
-                    const response = await fetch(`${this.API_URL}/subscribe`, {
+                    const response = await fetch(`${API_URL}/subscribe`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             subscriberId: this.currentUser.id,
-                            channelId: channelId
+                            channelId
                         })
                     });
                     
                     const data = await response.json();
                     
                     if (data.success) {
-                        const btn = document.getElementById('subscribeBtn');
-                        if (btn) {
-                            if (data.subscribed) {
-                                btn.textContent = 'Отписаться';
-                                btn.className = 'btn btn-secondary';
-                                this.showMessage('Вы подписались на канал!', 'success');
-                            } else {
-                                btn.textContent = 'Подписаться';
-                                btn.className = 'btn btn-primary';
-                                this.showMessage('Вы отписались от канала', 'info');
-                            }
-                        }
+                        alert('Вы подписались на канал!');
+                    } else {
+                        alert(data.error || 'Ошибка подписки');
                     }
                 } catch (error) {
-                    console.error('Ошибка:', error);
-                    this.showMessage('Ошибка подписки', 'error');
+                    console.error('Ошибка подписки:', error);
                 }
             },
             
-            // Каналы
-            async showChannel(channelId) {
-                try {
-                    const url = this.currentUser ? 
-                        `${this.API_URL}/channel/${channelId}?currentUserId=${this.currentUser.id}` :
-                        `${this.API_URL}/channel/${channelId}`;
-                    
-                    const response = await fetch(url);
-                    const channel = await response.json();
-                    
-                    const html = `
-                        <div class="fade-in">
-                            <button class="btn btn-secondary mb-lg" onclick="UsTube.goHome()">← Назад</button>
-                            
-                            <!-- Баннер канала -->
-                            <div style="height: 200px; background: var(--surface-light); border-radius: var(--radius-lg); margin-bottom: var(--space-lg); display: flex; align-items: center; justify-content: center;">
-                                ${channel.banner ? 
-                                    `<img src="${channel.banner}" style="width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-lg);">` :
-                                    '<span style="color: var(--text-secondary); font-size: 24px;">🏞️</span>'
-                                }
-                            </div>
-                            
-                            <!-- Информация о канале -->
-                            <div class="flex items-start justify-between mb-lg">
-                                <div class="flex items-center gap-md">
-                                    <div class="avatar" style="width: 80px; height: 80px; font-size: 32px;">
-                                        ${channel.username.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <h1 style="display: flex; align-items: center; gap: var(--space-xs);">
-                                            ${channel.username}
-                                            ${channel.isVerified ? '<span style="color: var(--primary-red);">✓</span>' : ''}
-                                        </h1>
-                                        <div class="video-meta">
-                                            @${channel.username.toLowerCase().replace(/\s+/g, '_')} • 
-                                            ${this.formatNumber(channel.subscribers)} подписчиков • 
-                                            ${channel.videos.length + channel.shorts.length} видео
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                ${this.currentUser && this.currentUser.id !== channel.id ? `
-                                    <button class="btn ${channel.isSubscribed ? 'btn-secondary' : 'btn-primary'}" 
-                                            onclick="UsTube.toggleSubscribe('${channel.id}')">
-                                        ${channel.isSubscribed ? 'Отписаться' : 'Подписаться'}
-                                    </button>
-                                ` : ''}
-                                
-                                ${this.currentUser && this.currentUser.id === channel.id ? `
-                                    <button class="btn btn-secondary" onclick="UsTube.showChannelSettings()">
-                                        ⚙️ Настройки
-                                    </button>
-                                ` : ''}
-                            </div>
-                            
-                            <!-- Описание -->
-                            ${channel.bio ? `
-                                <div class="mb-lg">
-                                    <p style="color: var(--text-secondary);">${channel.bio}</p>
-                                </div>
-                            ` : ''}
-                            
-                            <!-- Видео канала -->
-                            <h2 class="mb-lg">🎬 Видео (${channel.videos.length})</h2>
-                            ${channel.videos.length > 0 ? 
-                                this.displayVideos(channel.videos) : 
-                                '<p class="text-center text-secondary">На этом канале пока нет видео</p>'
-                            }
-                            
-                            <!-- Shorts канала -->
-                            ${channel.shorts.length > 0 ? `
-                                <h2 class="mb-lg mt-xl">🎥 Shorts (${channel.shorts.length})</h2>
-                                ${this.displayShorts(channel.shorts)}
-                            ` : ''}
-                        </div>
-                    `;
-                    
-                    document.getElementById('appContent').innerHTML = html;
-                    
-                } catch (error) {
-                    console.error('Ошибка загрузки канала:', error);
-                    this.showMessage('Ошибка загрузки канала', 'error');
-                }
-            },
-            
-            // Настройки канала
-            showChannelSettings() {
+            async addComment(videoId) {
                 if (!this.currentUser) {
                     this.showAuthModal();
                     return;
                 }
                 
-                document.getElementById('channelModal').classList.remove('hidden');
-                document.getElementById('channelName').value = this.currentUser.username;
-                document.getElementById('channelBio').value = this.currentUser.bio || '';
+                const input = document.getElementById('commentInput');
+                const text = input.value.trim();
                 
-                const avatar = document.getElementById('channelAvatar');
-                if (this.currentUser.avatar && this.currentUser.avatar !== '/uploads/avatars/default.png') {
-                    avatar.innerHTML = `<img src="${this.currentUser.avatar}" style="width: 100%; height: 100%; border-radius: 50%;">`;
-                }
-                
-                const banner = document.getElementById('channelBanner');
-                if (this.currentUser.banner && this.currentUser.banner !== '/uploads/banners/default.jpg') {
-                    banner.innerHTML = `<img src="${this.currentUser.banner}" style="width: 100%; height: 100%; border-radius: var(--radius-md);">`;
-                }
-            },
-            
-            hideChannelModal() {
-                document.getElementById('channelModal').classList.add('hidden');
-            },
-            
-            handleAvatarUpload(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const avatar = document.getElementById('channelAvatar');
-                        avatar.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; border-radius: 50%;">`;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            },
-            
-            handleBannerUpload(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const banner = document.getElementById('channelBanner');
-                        banner.innerHTML = `<img src="${e.target.result}" style="width: 100%; height: 100%; border-radius: var(--radius-md);">`;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            },
-            
-            async saveChannelSettings() {
-                const username = document.getElementById('channelName').value.trim();
-                const bio = document.getElementById('channelBio').value;
-                
-                if (!username) {
-                    this.showMessage('Введите название канала', 'error');
-                    return;
-                }
-                
-                const formData = new FormData();
-                formData.append('userId', this.currentUser.id);
-                formData.append('username', username);
-                formData.append('bio', bio);
-                
-                // Добавляем аватар
-                const avatarFile = document.getElementById('avatarUpload').files[0];
-                if (avatarFile) {
-                    formData.append('avatar', avatarFile);
-                }
-                
-                // Добавляем баннер
-                const bannerFile = document.getElementById('bannerUpload').files[0];
-                if (bannerFile) {
-                    formData.append('banner', bannerFile);
-                }
+                if (!text) return;
                 
                 try {
-                    const response = await fetch(`${this.API_URL}/channel/update`, {
+                    const response = await fetch(`${API_URL}/comments`, {
                         method: 'POST',
-                        body: formData
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            videoId,
+                            userId: this.currentUser.id,
+                            username: this.currentUser.username,
+                            text
+                        })
                     });
                     
-                    const data = await response.json();
+                    const comment = await response.json();
+                    input.value = '';
+                    alert('Комментарий добавлен!');
                     
-                    if (data.success) {
-                        this.currentUser = data.user;
-                        localStorage.setItem('ustube_user', JSON.stringify(data.user));
-                        this.updateUserUI();
-                        this.showMessage('Настройки сохранены', 'success');
-                        setTimeout(() => {
-                            this.hideChannelModal();
-                            this.showChannel(this.currentUser.id);
-                        }, 1000);
+                    // Обновляем список комментариев
+                    const commentsList = document.getElementById('commentsList');
+                    if (commentsList) {
+                        const newComment = this.displayComments([comment]);
+                        commentsList.innerHTML = newComment + commentsList.innerHTML;
                     }
                 } catch (error) {
-                    console.error('Ошибка сохранения:', error);
-                    this.showMessage('Ошибка сохранения', 'error');
+                    console.error('Ошибка:', error);
+                    alert('Ошибка добавления комментария');
                 }
             },
             
             // Админ панель
             async showAdminPanel() {
                 if (!this.currentUser?.isAdmin) {
-                    this.showMessage('Требуются права администратора', 'error');
+                    alert('Требуются права администратора');
                     return;
                 }
                 
-                // Проверяем пароль
-                const password = prompt('Введите пароль администратора:');
-                if (!password) return;
+                try {
+                    const response = await fetch(`${API_URL}/admin/stats`);
+                    const stats = await response.json();
+                    
+                    const usersResponse = await fetch(`${API_URL}/admin/users`);
+                    const users = await usersResponse.json();
+                    
+                    this.displayAdminPanel(stats, users);
+                } catch (error) {
+                    console.error('Ошибка загрузки статистики:', error);
+                }
+                
+                document.getElementById('adminModal').classList.remove('hidden');
+            },
+            
+            hideAdminModal() {
+                document.getElementById('adminModal').classList.add('hidden');
+            },
+            
+            displayAdminPanel(stats, users) {
+                const content = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-md); margin-bottom: var(--space-xl);">
+                        <div style="background: var(--surface-light); padding: var(--space-md); border-radius: var(--radius-lg);">
+                            <div style="font-size: 32px; font-weight: bold; color: var(--primary-red);">${stats.totalUsers}</div>
+                            <div style="color: var(--text-secondary);">Пользователей</div>
+                        </div>
+                        <div style="background: var(--surface-light); padding: var(--space-md); border-radius: var(--radius-lg);">
+                            <div style="font-size: 32px; font-weight: bold; color: var(--primary-red);">${stats.totalVideos}</div>
+                            <div style="color: var(--text-secondary);">Видео</div>
+                        </div>
+                        <div style="background: var(--surface-light); padding: var(--space-md); border-radius: var(--radius-lg);">
+                            <div style="font-size: 32px; font-weight: bold; color: var(--primary-red);">${this.formatNumber(stats.totalViews)}</div>
+                            <div style="color: var(--text-secondary);">Просмотров</div>
+                        </div>
+                        <div style="background: var(--surface-light); padding: var(--space-md); border-radius: var(--radius-lg);">
+                            <div style="font-size: 32px; font-weight: bold; color: var(--primary-red);">${stats.totalComments}</div>
+                            <div style="color: var(--text-secondary);">Комментариев</div>
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin-bottom: var(--space-md);">📊 Топ каналов</h3>
+                    <div style="background: var(--surface-light); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: var(--space-xl);">
+                        ${stats.topChannels.map((channel, index) => `
+                            <div style="display: flex; align-items: center; padding: var(--space-md); border-bottom: 1px solid var(--border-color);">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary-red); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: var(--space-md);">
+                                    ${channel.avatar}
+                                </div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: bold;">${channel.channelName}</div>
+                                    <div style="color: var(--text-secondary); font-size: 14px;">
+                                        ${this.formatNumber(channel.subscribers)} подписчиков
+                                    </div>
+                                </div>
+                                <div style="color: var(--text-secondary);">
+                                    #${index + 1}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <h3 style="margin-bottom: var(--space-md);">🎬 Управление видео</h3>
+                    <button class="btn btn-primary" onclick="UsTube.loadAllVideos()" style="width: 100%; margin-bottom: var(--space-md);">
+                        Обновить список видео
+                    </button>
+                    
+                    <div id="adminVideosList" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Список видео для управления -->
+                    </div>
+                `;
+                
+                document.getElementById('adminContent').innerHTML = content;
+                this.loadAdminVideos();
+            },
+            
+            async loadAdminVideos() {
+                try {
+                    const response = await fetch(`${API_URL}/videos?limit=20`);
+                    const videos = await response.json();
+                    
+                    const container = document.getElementById('adminVideosList');
+                    if (!container) return;
+                    
+                    let html = '';
+                    videos.forEach(video => {
+                        html += `
+                            <div style="display: flex; align-items: center; padding: var(--space-sm); border-bottom: 1px solid var(--border-color);">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: bold; font-size: 14px;">${video.title}</div>
+                                    <div style="color: var(--text-secondary); font-size: 12px;">
+                                        ${video.channel?.name} • ${this.formatNumber(video.views)} просмотров
+                                    </div>
+                                </div>
+                                <button class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;" 
+                                        onclick="UsTube.deleteVideo('${video.id}')">
+                                    Удалить
+                                </button>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки видео:', error);
+                }
+            },
+            
+            async deleteVideo(videoId) {
+                if (!confirm('Вы уверены, что хотите удалить это видео?')) return;
                 
                 try {
-                    const response = await fetch(`${this.API_URL}/admin/check/${encodeURIComponent(password)}`);
+                    const response = await fetch(`${API_URL}/admin/delete/${videoId}`, { method: 'DELETE' });
                     const data = await response.json();
                     
                     if (data.success) {
-                        // Открываем админ панель в новом окне
-                        window.open(`/admin.html?password=${password}`, '_blank');
-                    } else {
-                        this.showMessage('Неверный пароль', 'error');
+                        alert('Видео удалено');
+                        this.loadAdminVideos();
                     }
                 } catch (error) {
-                    console.error('Ошибка проверки пароля:', error);
-                    this.showMessage('Ошибка сервера', 'error');
+                    console.error('Ошибка удаления:', error);
                 }
             },
             
             // Вспомогательные функции
             formatNumber(num) {
-                if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-                if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+                if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
                 return num.toString();
             },
             
-            formatTimeAgo(timestamp) {
-                const seconds = Math.floor((Date.now() - timestamp) / 1000);
-                
-                if (seconds < 60) return 'только что';
-                if (seconds < 3600) return Math.floor(seconds / 60) + ' мин. назад';
-                if (seconds < 86400) return Math.floor(seconds / 3600) + ' ч. назад';
-                if (seconds < 2592000) return Math.floor(seconds / 86400) + ' дн. назад';
-                if (seconds < 31536000) return Math.floor(seconds / 2592000) + ' мес. назад';
-                return Math.floor(seconds / 31536000) + ' г. назад';
-            },
-            
             formatDuration(seconds) {
-                if (!seconds) return '0:00';
-                
-                const hrs = Math.floor(seconds / 3600);
-                const mins = Math.floor((seconds % 3600) / 60);
+                const mins = Math.floor(seconds / 60);
                 const secs = Math.floor(seconds % 60);
-                
-                if (hrs > 0) {
-                    return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                }
                 return `${mins}:${secs.toString().padStart(2, '0')}`;
             },
             
-            showMessage(message, type = 'info') {
-                alert(`${type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️'} ${message}`);
+            goHome() {
+                this.currentPage = 'home';
+                this.loadHomePage();
             },
             
-            setupEventListeners() {
-                // Поиск при нажатии Enter
-                document.getElementById('searchInput')?.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        this.search();
-                    }
-                });
-                
-                // Закрытие модальных окон
-                document.querySelectorAll('.modal').forEach(modal => {
-                    modal.addEventListener('click', (e) => {
-                        if (e.target === modal) {
-                            modal.classList.add('hidden');
-                        }
+            shareVideo() {
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'UsTube - Смотри это видео!',
+                        text: 'Смотри это видео на UsTube!',
+                        url: window.location.href,
                     });
-                });
-                
-                // Обработка Escape
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape') {
-                        document.querySelectorAll('.modal').forEach(modal => {
-                            modal.classList.add('hidden');
-                        });
-                    }
-                });
+                } else {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert('Ссылка скопирована в буфер обмена!');
+                }
+            },
+            
+            showUserMenu() {
+                if (confirm('Вы действительно хотите выйти?')) {
+                    localStorage.removeItem('ustube_user');
+                    this.currentUser = null;
+                    this.updateAuthUI();
+                    this.goHome();
+                }
             }
         };
 
-        // Инициализация
+        // Запуск приложения
         document.addEventListener('DOMContentLoaded', () => {
             UsTube.init();
         });
