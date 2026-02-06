@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ панель UsTube</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0F0F0F; color: white; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        h1 { color: #FF0000; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: #212121; padding: 20px; border-radius: 12px; }
+        .stat-value { font-size: 32px; font-weight: bold; color: #FF0000; margin-bottom: 5px; }
+        .stat-label { color: #AAAAAA; font-size: 14px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; background: #212121; border: none; color: white; border-radius: 20px; cursor: pointer; }
+        .tab.active { background: #FF0000; }
+        .content { background: #212121; border-radius: 12px; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #383838; }
+        th { color: #AAAAAA; font-weight: normal; }
+        .btn { padding: 8px 16px; border: none; border-radius: 20px; cursor: pointer; font-weight: 500; }
+        .btn-danger { background: #FF0000; color: white; }
+        .btn-secondary { background: #383838; color: white; }
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: #212121; border-radius: 12px; padding: 30px; max-width: 500px; width: 90%; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #AAAAAA; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; background: #0F0F0F; border: 1px solid #383838; border-radius: 8px; color: white; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Админ панель UsTube</h1>
+            <button class="btn btn-secondary" onclick="window.close()">Закрыть</button>
+        </div>
+        
+        <!-- Статистика -->
+        <div class="stats-grid" id="statsGrid">
+            <!-- Загрузка... -->
+        </div>
+        
+        <!-- Табы -->
+        <div class="tabs">
+            <button class="tab active" onclick="Admin.showTab('videos')">📹 Видео</button>
+            <button class="tab" onclick="Admin.showTab('users')">👥 Пользователи</button>
+            <button class="tab" onclick="Admin.showTab('logs')">📊 Логи</button>
+            <button class="tab" onclick="Admin.showTab('upload')">📤 Загрузить видео</button>
+        </div>
+        
+        <!-- Контент -->
+        <div class="content">
+            <div id="tabContent">
+                <!-- Контент табов -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно загрузки видео -->
+    <div class="modal hidden" id="uploadModal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px;">📤 Загрузить видео от UsTube</h2>
+            
+            <div class="form-group">
+                <label>Название видео</label>
+                <input type="text" id="adminVideoTitle" placeholder="Введите название">
+            </div>
+            
+            <div class="form-group">
+                <label>Описание</label>
+                <textarea id="adminVideoDescription" rows="3" placeholder="Описание видео"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Категория</label>
+                <select id="adminVideoCategory">
+                    <option value="Образование">Образование</option>
+                    <option value="Развлечения">Развлечения</option>
+                    <option value="Музыка">Музыка</option>
+                    <option value="Игры">Игры</option>
+                    <option value="Спорт">Спорт</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Теги (через запятую)</label>
+                <input type="text" id="adminVideoTags" placeholder="ustube, видео, платформа">
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="adminIsShort"> Это короткое видео (Shorts)
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>Видео файл</label>
+                <input type="file" id="adminVideoFile" accept="video/*">
+            </div>
+            
+            <div class="form-group">
+                <label>Превью (миниатюра)</label>
+                <input type="file" id="adminThumbnailFile" accept="image/*">
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="Admin.hideUploadModal()">Отмена</button>
+                <button class="btn btn-danger" onclick="Admin.uploadUstubeVideo()">Опубликовать</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const Admin = {
+            password: new URLSearchParams(window.location.search).get('password'),
+            API_URL: 'http://localhost:3000/api',
+            
+            async init() {
+                if (!this.password) {
+                    alert('Требуется пароль администратора');
+                    window.close();
+                    return;
+                }
+                
+                await this.loadStats();
+                await this.showTab('videos');
+            },
+            
+            async loadStats() {
+                try {
+                    const response = await fetch(`${this.API_URL}/admin/stats`);
+                    const stats = await response.json();
+                    
+                    document.getElementById('statsGrid').innerHTML = `
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.totalUsers}</div>
+                            <div class="stat-label">Пользователей</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.totalVideos}</div>
+                            <div class="stat-label">Видео</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${this.formatNumber(stats.totalViews)}</div>
+                            <div class="stat-label">Просмотров</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${stats.totalComments}</div>
+                            <div class="stat-label">Комментариев</div>
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error('Ошибка загрузки статистики:', error);
+                }
+            },
+            
+            async showTab(tab) {
+                // Обновляем активную вкладку
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                event.target.classList.add('active');
+                
+                switch(tab) {
+                    case 'videos':
+                        await this.showVideosTab();
+                        break;
+                    case 'users':
+                        await this.showUsersTab();
+                        break;
+                    case 'logs':
+                        await this.showLogsTab();
+                        break;
+                    case 'upload':
+                        this.showUploadTab();
+                        break;
+                }
+            },
+            
+            async showVideosTab() {
+                try {
+                    const response = await fetch(`${this.API_URL}/admin/videos`);
+                    const videos = await response.json();
+                    
+                    let html = `
+                        <h2 style="margin-bottom: 20px;">📹 Все видео (${videos.length})</h2>
+                        <div style="max-height: 500px; overflow-y: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Название</th>
+                                        <th>Канал</th>
+                                        <th>Просмотры</th>
+                                        <th>Дата</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    videos.forEach(video => {
+                        html += `
+                            <tr>
+                                <td>${video.title}</td>
+                                <td>${video.channelName}</td>
+                                <td>${this.formatNumber(video.views)}</td>
+                                <td>${new Date(video.createdAt).toLocaleDateString()}</td>
+                                <td>
+                                    <button class="btn btn-danger" onclick="Admin.deleteVideo('${video.id}')">Удалить</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    
+                    document.getElementById('tabContent').innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки видео:', error);
+                }
+            },
+            
+            async showUsersTab() {
+                try {
+                    const response = await fetch(`${this.API_URL}/admin/users`);
+                    const users = await response.json();
+                    
+                    let html = `
+                        <h2 style="margin-bottom: 20px;">👥 Пользователи (${users.length})</h2>
+                        <div style="max-height: 500px; overflow-y: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Имя</th>
+                                        <th>Email</th>
+                                        <th>Подписчики</th>
+                                        <th>Видео</th>
+                                        <th>Дата регистрации</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    users.forEach(user => {
+                        if (user.isAdmin) return;
+                        
+                        html += `
+                            <tr>
+                                <td>${user.username} ${user.isVerified ? '✓' : ''}</td>
+                                <td>${user.email}</td>
+                                <td>${this.formatNumber(user.subscribers)}</td>
+                                <td>${user.videos.length + user.shorts.length}</td>
+                                <td>${new Date(user.createdAt).toLocaleDateString()}</td>
+                                <td>
+                                    <button class="btn btn-danger" onclick="Admin.deleteUser('${user.id}')">Удалить</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    
+                    document.getElementById('tabContent').innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки пользователей:', error);
+                }
+            },
+            
+            async showLogsTab() {
+                try {
+                    const response = await fetch(`${this.API_URL}/admin/logs`);
+                    const logs = await response.json();
+                    
+                    let html = `
+                        <h2 style="margin-bottom: 20px;">📊 Логи системы</h2>
+                        <div style="max-height: 500px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                    `;
+                    
+                    logs.forEach(log => {
+                        const date = new Date(log.timestamp);
+                        html += `
+                            <div style="padding: 8px; border-bottom: 1px solid #383838;">
+                                <span style="color: #AAAAAA;">[${date.toLocaleString()}]</span>
+                                <span style="color: #FF0000;"> ${log.action}</span>
+                                <span style="color: white;">: ${JSON.stringify(log.details)}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    document.getElementById('tabContent').innerHTML = html;
+                } catch (error) {
+                    console.error('Ошибка загрузки логов:', error);
+                }
+            },
+            
+            showUploadTab() {
+                document.getElementById('tabContent').innerHTML = `
+                    <h2 style="margin-bottom: 20px;">📤 Загрузка видео от имени UsTube</h2>
+                    <p style="color: #AAAAAA; margin-bottom: 20px;">
+                        Видео будет опубликовано от имени официального канала UsTube Official
+                    </p>
+                    <button class="btn btn-danger" onclick="Admin.showUploadModal()">
+                        Загрузить новое видео
+                    </button>
+                `;
+            },
+            
+            showUploadModal() {
+                document.getElementById('uploadModal').classList.remove('hidden');
+            },
+            
+            hideUploadModal() {
+                document.getElementById('uploadModal').classList.add('hidden');
+            },
+            
+            async uploadUstubeVideo() {
+                const title = document.getElementById('adminVideoTitle').value.trim();
+                const description = document.getElementById('adminVideoDescription').value;
+                const category = document.getElementById('adminVideoCategory').value;
+                const tags = document.getElementById('adminVideoTags').value;
+                const isShort = document.getElementById('adminIsShort').checked;
+                
+                if (!title) {
+                    alert('Введите название видео');
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('title', title);
+                formData.append('description', description);
+                formData.append('category', category);
+                formData.append('tags', tags);
+                formData.append('isShort', isShort);
+                
+                const videoFile = document.getElementById('adminVideoFile').files[0];
+                const thumbnailFile = document.getElementById('adminThumbnailFile').files[0];
+                
+                if (videoFile) formData.append('video', videoFile);
+                if (thumbnailFile) formData.append('thumbnail', thumbnailFile);
+                
+                try {
+                    const response = await fetch(`${this.API_URL}/admin/upload/ustube`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('✅ Видео успешно опубликовано от имени UsTube Official!');
+                        this.hideUploadModal();
+                        this.showTab('videos');
+                        this.loadStats();
+                    } else {
+                        alert('❌ Ошибка загрузки видео');
+                    }
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    alert('❌ Ошибка сервера');
+                }
+            },
+            
+            async deleteVideo(videoId) {
+                if (!confirm('Вы уверены, что хотите удалить это видео?')) return;
+                
+                try {
+                    const response = await fetch(`${this.API_URL}/admin/videos/delete`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ videoId })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('✅ Видео удалено');
+                        this.showTab('videos');
+                        this.loadStats();
+                    }
+                } catch (error) {
+                    console.error('Ошибка удаления:', error);
+                    alert('❌ Ошибка удаления видео');
+                }
+            },
+            
+            async deleteUser(userId) {
+                if (!confirm('Вы уверены, что хотите удалить этого пользователя?')) return;
+                
+                try {
+                    const response = await fetch(`${this.API_URL}/admin/users/delete`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('✅ Пользователь удален');
+                        this.showTab('users');
+                        this.loadStats();
+                    }
+                } catch (error) {
+                    console.error('Ошибка удаления:', error);
+                    alert('❌ Ошибка удаления пользователя');
+                }
+            },
+            
+            formatNumber(num) {
+                if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                return num;
+            }
+        };
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            Admin.init();
+        });
+    </script>
+</body>
+</html>
