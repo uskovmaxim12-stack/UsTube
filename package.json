@@ -1,13 +1,12 @@
 {
-  "name": "ustube-full",
+  "name": "ustube",
   "version": "1.0.0",
   "description": "Полнофункциональная платформа для видео с реальными данными",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "setup": "echo 'Сервер готов к запуску!'"
+    "start": "node server.js"
   },
-  "keywords": ["video", "platform", "youtube", "social"],
+  "keywords": ["video", "youtube", "platform", "streaming"],
   "author": "UsTube Team",
   "license": "MIT",
   "engines": {
