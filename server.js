@@ -3,196 +3,193 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const url = require('url');
-const querystring = require('querystring');
 
-// ===== КОНФИГУРАЦИЯ =====
-const CONFIG = {
-    PORT: 3000,
-    UPLOAD_DIR: './uploads',
-    DB_FILE: './database.json',
-    ADMIN_EMAIL: 'admin@ustube.com',
-    ADMIN_PASSWORD: 'admin123',
-    JWT_SECRET: 'ustube_secret_key_2024'
-};
+// Конфигурация
+const PORT = 3000;
+const DB_FILE = './database.json';
+const UPLOAD_DIR = './uploads';
 
-// ===== СОЗДАНИЕ ПАПОК =====
-const folders = [
-    CONFIG.UPLOAD_DIR,
-    CONFIG.UPLOAD_DIR + '/videos',
-    CONFIG.UPLOAD_DIR + '/thumbnails',
-    CONFIG.UPLOAD_DIR + '/avatars',
-    CONFIG.UPLOAD_DIR + '/banners',
-    CONFIG.UPLOAD_DIR + '/shorts'
-];
-
-folders.forEach(folder => {
-    if (!fs.existsSync(folder)) {
-        fs.mkdirSync(folder, { recursive: true });
-    }
+// Создаем папки
+[UPLOAD_DIR, UPLOAD_DIR + '/videos', UPLOAD_DIR + '/thumbnails', UPLOAD_DIR + '/avatars', UPLOAD_DIR + '/banners'].forEach(dir => {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// ===== БАЗА ДАННЫХ =====
+// База данных
 class Database {
     constructor() {
         this.data = {
             users: {},
             videos: {},
-            shorts: {},
             comments: {},
             subscriptions: {},
             likes: {},
-            views: {},
-            playlists: {},
-            notifications: {},
-            logs: [],
-            nextId: {
-                video: 1000,
-                user: 1000,
-                comment: 1000,
-                channel: 1000
-            }
+            nextId: { video: 1000, user: 1000, comment: 1000 }
         };
         this.load();
         this.initDefaultData();
     }
 
     load() {
-        if (fs.existsSync(CONFIG.DB_FILE)) {
+        if (fs.existsSync(DB_FILE)) {
             try {
-                const content = fs.readFileSync(CONFIG.DB_FILE, 'utf8');
-                this.data = JSON.parse(content);
-                console.log('✅ База данных загружена');
-            } catch (e) {
-                console.log('⚠️ Новая база данных создана');
-            }
+                this.data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+            } catch(e) {}
         }
     }
 
     save() {
-        fs.writeFileSync(CONFIG.DB_FILE, JSON.stringify(this.data, null, 2));
+        fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2));
     }
 
     initDefaultData() {
         // Создаем администратора
-        if (!this.data.users[CONFIG.ADMIN_EMAIL]) {
-            const adminId = this.generateId('user');
-            this.data.users[CONFIG.ADMIN_EMAIL] = {
-                id: adminId,
+        if (!this.data.users['admin@ustube.com']) {
+            this.data.users['admin@ustube.com'] = {
+                id: 'user_1000',
                 username: 'UsTube Official',
-                email: CONFIG.ADMIN_EMAIL,
-                password: this.hashPassword(CONFIG.ADMIN_PASSWORD),
-                avatar: '/uploads/avatars/ustube.png',
-                banner: '/uploads/banners/ustube_banner.jpg',
-                bio: 'Официальный канал платформы UsTube. Лучшие видео, обзоры, новости и многое другое!',
-                subscribers: 0,
-                videos: [],
-                shorts: [],
+                email: 'admin@ustube.com',
+                password: crypto.createHash('sha256').update('admin123').digest('hex'),
+                avatar: 'https://i.pravatar.cc/300?img=1',
+                banner: 'https://images.unsplash.com/photo-1492684223066-dd23140edf6d?w=1200&h=400&fit=crop',
+                bio: 'Официальный канал платформы UsTube. Лучшие видео, обзоры и новости!',
+                subscribers: 125000,
+                videos: ['video_1001', 'video_1002', 'video_1003', 'video_1004'],
+                shorts: ['video_1005', 'video_1006', 'video_1007'],
                 createdAt: Date.now(),
                 isAdmin: true,
-                isVerified: true,
-                channelId: 'ustube_official'
+                isVerified: true
             };
         }
 
-        // Создаем демо видео для канала UsTube
-        const demoVideos = [
+        // Создаем видео UsTube Official
+        const usTubeVideos = [
             {
-                title: "Добро пожаловать на UsTube!",
-                description: "Знакомство с новой платформой для видео. Все функции и возможности.",
+                id: 'video_1001',
+                title: "🚀 Добро пожаловать на UsTube!",
+                description: "Полное руководство по новой платформе для видео. Все функции и возможности в одном видео!",
                 duration: 245,
                 category: "Образование",
-                tags: "ustube, платформа, видео, гайд"
+                tags: "ustube, платформа, гайд, обучение",
+                views: 125000,
+                likes: 8500,
+                dislikes: 120,
+                commentsCount: 342
             },
             {
-                title: "Как монтировать видео в UsTube",
-                description: "Полный гайд по встроенному редактору видео на нашей платформе.",
-                duration: 542,
+                id: 'video_1002',
+                title: "🎬 Как монтировать видео в UsTube",
+                description: "Полный гайд по встроенному редактору видео на нашей платформе. Все инструменты за 5 минут!",
+                duration: 315,
                 category: "Образование",
-                tags: "монтаж, редактор, обучение"
+                tags: "монтаж, редактор, обучение",
+                views: 89200,
+                likes: 6200,
+                dislikes: 85,
+                commentsCount: 210
             },
             {
-                title: "Топ 10 фишек UsTube 2024",
-                description: "Самые крутые функции, о которых вы не знали!",
-                duration: 623,
+                id: 'video_1003',
+                title: "🔥 Топ 10 фишек UsTube 2024",
+                description: "Самые крутые функции, о которых вы не знали! Секреты и лайфхаки для авторов.",
+                duration: 458,
                 category: "Развлечения",
-                tags: "фишки, возможности, 2024"
+                tags: "фишки, секреты, 2024",
+                views: 210000,
+                likes: 15200,
+                dislikes: 230,
+                commentsCount: 589
             },
             {
-                title: "Как набрать 1000 подписчиков",
-                description: "Стратегия роста для новых авторов на платформе UsTube.",
+                id: 'video_1004',
+                title: "📈 Как набрать 1000 подписчиков за месяц",
+                description: "Стратегия роста для новых авторов. Проверенные методы продвижения на платформе UsTube.",
                 duration: 892,
                 category: "Образование",
-                tags: "рост, подписчики, продвижение"
+                tags: "рост, подписчики, продвижение",
+                views: 187000,
+                likes: 13400,
+                dislikes: 180,
+                commentsCount: 421
             }
         ];
 
-        const admin = this.data.users[CONFIG.ADMIN_EMAIL];
-        demoVideos.forEach((video, index) => {
-            const videoId = `video_ustube_${index + 1}`;
-            if (!this.data.videos[videoId]) {
-                this.data.videos[videoId] = {
-                    id: videoId,
-                    title: video.title,
-                    description: video.description,
-                    channelId: admin.id,
-                    channelName: admin.username,
-                    views: Math.floor(Math.random() * 100000) + 1000,
-                    likes: Math.floor(Math.random() * 5000) + 100,
-                    dislikes: Math.floor(Math.random() * 100),
-                    comments: Math.floor(Math.random() * 200) + 10,
-                    duration: video.duration,
-                    category: video.category,
-                    tags: video.tags,
-                    videoUrl: `/uploads/videos/demo${index + 1}.mp4`,
-                    thumbnailUrl: `/uploads/thumbnails/ustube${index + 1}.jpg`,
-                    isPublished: true,
-                    createdAt: Date.now() - (index * 86400000),
-                    isShort: false
-                };
-                admin.videos.push(videoId);
-            }
-        });
-
-        // Создаем демо шортсы
-        const demoShorts = [
+        // Shorts UsTube Official
+        const usTubeShorts = [
             {
-                title: "Минутка UsTube #1",
-                description: "Самое интересное за неделю!",
-                duration: 45
+                id: 'video_1005',
+                title: "⚡️ UsTube за 60 секунд",
+                description: "Самое важное о платформе за минуту!",
+                duration: 60,
+                category: "Развлечения",
+                tags: "shorts, кратко, обзор",
+                views: 89000,
+                likes: 7200,
+                dislikes: 45,
+                commentsCount: 89,
+                isShort: true
             },
             {
-                title: "За кадром UsTube",
-                description: "Как создается контент для платформы",
-                duration: 52
+                id: 'video_1006',
+                title: "🎯 3 совета для новичков",
+                description: "Что нужно знать перед первым видео",
+                duration: 45,
+                category: "Образование",
+                tags: "советы, новички, старт",
+                views: 67000,
+                likes: 5800,
+                dislikes: 32,
+                commentsCount: 67,
+                isShort: true
             },
             {
-                title: "Советы для авторов",
-                description: "3 главных совета от создателей платформы",
-                duration: 38
+                id: 'video_1007',
+                title: "💡 Идеи для контента",
+                description: "Что снимать в 2024 году",
+                duration: 55,
+                category: "Образование",
+                tags: "идеи, контент, тренды",
+                views: 78000,
+                likes: 6400,
+                dislikes: 28,
+                commentsCount: 78,
+                isShort: true
             }
         ];
 
-        demoShorts.forEach((short, index) => {
-            const shortId = `short_ustube_${index + 1}`;
-            if (!this.data.shorts[shortId]) {
-                this.data.shorts[shortId] = {
-                    id: shortId,
-                    title: short.title,
-                    description: short.description,
-                    channelId: admin.id,
-                    channelName: admin.username,
-                    views: Math.floor(Math.random() * 50000) + 5000,
-                    likes: Math.floor(Math.random() * 3000) + 50,
-                    comments: Math.floor(Math.random() * 100) + 5,
-                    duration: short.duration,
-                    videoUrl: `/uploads/shorts/short${index + 1}.mp4`,
-                    thumbnailUrl: `/uploads/thumbnails/short${index + 1}.jpg`,
-                    createdAt: Date.now() - (index * 3600000),
-                    isShort: true
+        // Добавляем видео
+        [...usTubeVideos, ...usTubeShorts].forEach(video => {
+            if (!this.data.videos[video.id]) {
+                this.data.videos[video.id] = {
+                    ...video,
+                    channelId: 'user_1000',
+                    channelName: 'UsTube Official',
+                    channelAvatar: 'https://i.pravatar.cc/300?img=1',
+                    videoUrl: `/uploads/videos/${video.id}.mp4`,
+                    thumbnailUrl: `https://picsum.photos/300/169?random=${video.id}&t=${Date.now()}`,
+                    createdAt: Date.now() - (Math.random() * 30 * 86400000),
+                    isPublished: true
                 };
-                admin.shorts.push(shortId);
             }
         });
+
+        // Создаем тестового пользователя
+        if (!this.data.users['test@user.com']) {
+            this.data.users['test@user.com'] = {
+                id: 'user_1001',
+                username: 'Тестовый Пользователь',
+                email: 'test@user.com',
+                password: crypto.createHash('sha256').update('test123').digest('hex'),
+                avatar: 'https://i.pravatar.cc/300?img=5',
+                banner: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&h=400&fit=crop',
+                bio: 'Тестирую новую платформу UsTube!',
+                subscribers: 150,
+                videos: [],
+                shorts: [],
+                createdAt: Date.now() - (7 * 86400000),
+                isAdmin: false,
+                isVerified: false
+            };
+        }
 
         this.save();
     }
@@ -204,27 +201,25 @@ class Database {
     }
 
     hashPassword(password) {
-        return crypto.createHash('sha256').update(password + CONFIG.JWT_SECRET).digest('hex');
+        return crypto.createHash('sha256').update(password).digest('hex');
     }
 
-    // ===== МЕТОДЫ ДЛЯ ПОЛЬЗОВАТЕЛЕЙ =====
+    // Пользователи
     createUser(data) {
         const userId = this.generateId('user');
         const user = {
             id: userId,
-            username: data.username,
-            email: data.email,
+            ...data,
             password: this.hashPassword(data.password),
-            avatar: '/uploads/avatars/default.png',
-            banner: '/uploads/banners/default.jpg',
+            avatar: 'https://i.pravatar.cc/300?img=' + (Object.keys(this.data.users).length + 1),
+            banner: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&h=400&fit=crop',
             bio: '',
             subscribers: 0,
             videos: [],
             shorts: [],
             createdAt: Date.now(),
             isAdmin: false,
-            isVerified: false,
-            channelId: `channel_${data.username.toLowerCase().replace(/\s+/g, '_')}`
+            isVerified: false
         };
         
         this.data.users[data.email] = user;
@@ -250,7 +245,11 @@ class Database {
         return null;
     }
 
-    // ===== МЕТОДЫ ДЛЯ ВИДЕО =====
+    getAllUsers() {
+        return Object.values(this.data.users);
+    }
+
+    // Видео
     createVideo(data) {
         const videoId = this.generateId('video');
         const video = {
@@ -259,7 +258,7 @@ class Database {
             views: 0,
             likes: 0,
             dislikes: 0,
-            comments: 0,
+            commentsCount: 0,
             createdAt: Date.now(),
             isPublished: true,
             isShort: data.duration < 60
@@ -267,7 +266,7 @@ class Database {
         
         this.data.videos[videoId] = video;
         
-        // Добавляем видео в канал пользователя
+        // Добавляем в канал пользователя
         const user = this.getUserById(data.channelId);
         if (user) {
             if (video.isShort) {
@@ -282,7 +281,7 @@ class Database {
     }
 
     getVideo(id) {
-        const video = this.data.videos[id] || this.data.shorts[id];
+        const video = this.data.videos[id];
         if (video) {
             video.views = (video.views || 0) + 1;
             this.save();
@@ -301,6 +300,10 @@ class Database {
             videos = videos.filter(v => v.channelId === filter.channelId);
         }
         
+        if (filter.isShort !== undefined) {
+            videos = videos.filter(v => v.isShort === filter.isShort);
+        }
+        
         if (filter.sortBy === 'popular') {
             videos.sort((a, b) => b.views - a.views);
         } else if (filter.sortBy === 'trending') {
@@ -316,13 +319,44 @@ class Database {
         return videos.slice(0, filter.limit || 50);
     }
 
-    getShorts(limit = 30) {
-        const shorts = Object.values(this.data.shorts);
-        shorts.sort((a, b) => b.createdAt - a.createdAt);
-        return shorts.slice(0, limit);
+    getAllVideos() {
+        return Object.values(this.data.videos);
     }
 
-    // ===== МЕТОДЫ ДЛЯ КОММЕНТАРИЕВ =====
+    deleteVideo(videoId) {
+        const video = this.data.videos[videoId];
+        if (!video) return false;
+        
+        // Удаляем из канала
+        const user = this.getUserById(video.channelId);
+        if (user) {
+            if (video.isShort) {
+                user.shorts = user.shorts.filter(id => id !== videoId);
+            } else {
+                user.videos = user.videos.filter(id => id !== videoId);
+            }
+        }
+        
+        // Удаляем комментарии
+        Object.keys(this.data.comments).forEach(commentId => {
+            if (this.data.comments[commentId].videoId === videoId) {
+                delete this.data.comments[commentId];
+            }
+        });
+        
+        // Удаляем лайки
+        Object.keys(this.data.likes).forEach(likeKey => {
+            if (this.data.likes[likeKey].videoId === videoId) {
+                delete this.data.likes[likeKey];
+            }
+        });
+        
+        delete this.data.videos[videoId];
+        this.save();
+        return true;
+    }
+
+    // Комментарии
     addComment(videoId, userId, text) {
         const commentId = this.generateId('comment');
         const user = this.getUserById(userId);
@@ -339,10 +373,10 @@ class Database {
         
         this.data.comments[commentId] = comment;
         
-        // Увеличиваем счетчик комментариев у видео
-        const video = this.data.videos[videoId] || this.data.shorts[videoId];
+        // Увеличиваем счетчик комментариев
+        const video = this.data.videos[videoId];
         if (video) {
-            video.comments = (video.comments || 0) + 1;
+            video.commentsCount = (video.commentsCount || 0) + 1;
         }
         
         this.save();
@@ -355,7 +389,7 @@ class Database {
             .sort((a, b) => b.createdAt - a.createdAt);
     }
 
-    // ===== МЕТОДЫ ДЛЯ ПОДПИСОК =====
+    // Подписки
     subscribe(subscriberId, channelId) {
         const key = `${subscriberId}_${channelId}`;
         if (!this.data.subscriptions[key]) {
@@ -398,10 +432,10 @@ class Database {
         return !!this.data.subscriptions[`${subscriberId}_${channelId}`];
     }
 
-    // ===== МЕТОДЫ ДЛЯ ЛАЙКОВ =====
+    // Лайки
     likeVideo(userId, videoId, type) {
         const key = `${userId}_${videoId}`;
-        const video = this.data.videos[videoId] || this.data.shorts[videoId];
+        const video = this.data.videos[videoId];
         
         if (video) {
             // Удаляем предыдущую реакцию
@@ -427,7 +461,7 @@ class Database {
         return this.data.likes[`${userId}_${videoId}`];
     }
 
-    // ===== МЕТОДЫ ДЛЯ ПОИСКА =====
+    // Поиск
     search(query, type = 'video') {
         const searchTerm = query.toLowerCase();
         
@@ -438,102 +472,29 @@ class Database {
                 video.description.toLowerCase().includes(searchTerm) ||
                 video.tags.toLowerCase().includes(searchTerm)
             );
-        } else if (type === 'channel') {
+        } else {
             const users = Object.values(this.data.users);
             return users.filter(user => 
                 user.username.toLowerCase().includes(searchTerm) ||
                 user.bio.toLowerCase().includes(searchTerm)
             );
         }
-        
-        return [];
     }
 
-    // ===== МЕТОДЫ ДЛЯ РЕКОМЕНДАЦИЙ =====
-    getRecommendations(userId) {
-        const allVideos = Object.values(this.data.videos);
-        const user = this.getUserById(userId);
-        
-        if (!user) {
-            // Для неавторизованных - популярные видео
-            return allVideos
-                .sort((a, b) => b.views - a.views)
-                .slice(0, 20);
-        }
-        
-        // Получаем видео с каналов, на которые подписан пользователь
-        const subscribedChannels = Object.values(this.data.subscriptions)
-            .filter(s => s.subscriberId === userId)
-            .map(s => s.channelId);
-        
-        const subscribedVideos = allVideos.filter(v => subscribedChannels.includes(v.channelId));
-        
-        // Смешиваем с популярными видео
-        const popularVideos = allVideos
-            .filter(v => !subscribedChannels.includes(v.channelId))
-            .sort((a, b) => b.views - a.views)
-            .slice(0, 10);
-        
-        return [...subscribedVideos, ...popularVideos].slice(0, 20);
-    }
-
-    // ===== АДМИН МЕТОДЫ =====
+    // Статистика для админ панели
     getAdminStats() {
         const users = Object.values(this.data.users);
         const videos = Object.values(this.data.videos);
-        const shorts = Object.values(this.data.shorts);
         
         return {
             totalUsers: users.length,
             totalVideos: videos.length,
-            totalShorts: shorts.length,
-            totalViews: videos.reduce((sum, v) => sum + (v.views || 0), 0) + 
-                        shorts.reduce((sum, s) => sum + (s.views || 0), 0),
+            totalViews: videos.reduce((sum, v) => sum + (v.views || 0), 0),
             totalComments: Object.keys(this.data.comments).length,
             totalSubscriptions: Object.keys(this.data.subscriptions).length,
-            recentUsers: users.slice(-10).reverse(),
             recentVideos: videos.slice(-10).reverse(),
-            systemLogs: this.data.logs.slice(-50).reverse()
+            recentUsers: users.slice(-10).reverse()
         };
-    }
-
-    deleteVideo(videoId) {
-        const video = this.data.videos[videoId] || this.data.shorts[videoId];
-        if (!video) return false;
-        
-        // Удаляем из канала
-        const user = this.getUserById(video.channelId);
-        if (user) {
-            if (video.isShort) {
-                user.shorts = user.shorts.filter(id => id !== videoId);
-            } else {
-                user.videos = user.videos.filter(id => id !== videoId);
-            }
-        }
-        
-        // Удаляем комментарии
-        Object.keys(this.data.comments).forEach(commentId => {
-            if (this.data.comments[commentId].videoId === videoId) {
-                delete this.data.comments[commentId];
-            }
-        });
-        
-        // Удаляем лайки
-        Object.keys(this.data.likes).forEach(likeKey => {
-            if (this.data.likes[likeKey].videoId === videoId) {
-                delete this.data.likes[likeKey];
-            }
-        });
-        
-        // Удаляем видео
-        if (video.isShort) {
-            delete this.data.shorts[videoId];
-        } else {
-            delete this.data.videos[videoId];
-        }
-        
-        this.save();
-        return true;
     }
 
     deleteUser(email) {
@@ -560,40 +521,20 @@ class Database {
             }
         });
         
-        // Удаляем пользователя
         delete this.data.users[email];
-        
         this.save();
         return true;
-    }
-
-    addLog(action, details) {
-        const log = {
-            id: `log_${Date.now()}`,
-            action,
-            details,
-            timestamp: Date.now(),
-            userAgent: details.userAgent || 'Unknown'
-        };
-        
-        this.data.logs.push(log);
-        if (this.data.logs.length > 1000) {
-            this.data.logs = this.data.logs.slice(-1000);
-        }
-        
-        this.save();
-        return log;
     }
 }
 
 const db = new Database();
 
-// ===== HTTP СЕРВЕР =====
-const server = http.createServer(async (req, res) => {
+// HTTP сервер
+const server = http.createServer((req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
     
-    // CORS заголовки
+    // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -604,12 +545,6 @@ const server = http.createServer(async (req, res) => {
         return;
     }
     
-    // Статические файлы
-    if (pathname.startsWith('/uploads/') || pathname.startsWith('/static/')) {
-        serveStaticFile(req, res);
-        return;
-    }
-    
     // API маршруты
     if (pathname === '/api/register' && req.method === 'POST') {
         handleRegister(req, res);
@@ -617,15 +552,13 @@ const server = http.createServer(async (req, res) => {
         handleLogin(req, res);
     } else if (pathname === '/api/videos' && req.method === 'GET') {
         handleGetVideos(req, res, parsedUrl.query);
-    } else if (pathname.startsWith('/api/videos/') && req.method === 'GET') {
+    } else if (pathname.startsWith('/api/video/') && req.method === 'GET') {
         const videoId = pathname.split('/')[3];
         handleGetVideo(req, res, videoId);
-    } else if (pathname === '/api/upload/video' && req.method === 'POST') {
+    } else if (pathname === '/api/upload' && req.method === 'POST') {
         handleUploadVideo(req, res);
-    } else if (pathname === '/api/shorts' && req.method === 'GET') {
-        handleGetShorts(req, res);
-    } else if (pathname.startsWith('/api/comments/') && req.method === 'GET') {
-        const videoId = pathname.split('/')[3];
+    } else if (pathname === '/api/comments' && req.method === 'GET') {
+        const videoId = parsedUrl.query.videoId;
         handleGetComments(req, res, videoId);
     } else if (pathname === '/api/comments' && req.method === 'POST') {
         handleAddComment(req, res);
@@ -637,8 +570,6 @@ const server = http.createServer(async (req, res) => {
         handleUnsubscribe(req, res);
     } else if (pathname === '/api/search' && req.method === 'GET') {
         handleSearch(req, res, parsedUrl.query);
-    } else if (pathname === '/api/recommendations' && req.method === 'GET') {
-        handleRecommendations(req, res, parsedUrl.query);
     } else if (pathname === '/api/channel' && req.method === 'GET') {
         handleGetChannel(req, res, parsedUrl.query);
     } else if (pathname === '/api/channel/update' && req.method === 'POST') {
@@ -653,16 +584,12 @@ const server = http.createServer(async (req, res) => {
         handleAdminUsers(req, res);
     } else if (pathname === '/api/admin/users/delete' && req.method === 'POST') {
         handleDeleteUser(req, res);
-    } else if (pathname === '/api/admin/logs' && req.method === 'GET') {
-        handleAdminLogs(req, res);
-    } else if (pathname === '/api/edit/video' && req.method === 'POST') {
-        handleEditVideo(req, res);
     } else {
         serveStaticFile(req, res);
     }
 });
 
-// ===== ОБРАБОТЧИКИ API =====
+// Вспомогательные функции
 function parseBody(req) {
     return new Promise((resolve, reject) => {
         let body = '';
@@ -678,6 +605,7 @@ function parseBody(req) {
     });
 }
 
+// Обработчики API
 async function handleRegister(req, res) {
     try {
         const data = await parseBody(req);
@@ -695,13 +623,6 @@ async function handleRegister(req, res) {
         }
         
         const user = db.createUser(data);
-        
-        // Логируем регистрацию
-        db.addLog('REGISTER', {
-            email: data.email,
-            username: data.username,
-            userAgent: req.headers['user-agent']
-        });
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
@@ -731,12 +652,6 @@ async function handleLogin(req, res) {
             return;
         }
         
-        // Логируем вход
-        db.addLog('LOGIN', {
-            email: data.email,
-            userAgent: req.headers['user-agent']
-        });
-        
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
             success: true,
@@ -749,8 +664,7 @@ async function handleLogin(req, res) {
                 bio: user.bio,
                 subscribers: user.subscribers,
                 isAdmin: user.isAdmin,
-                isVerified: user.isVerified,
-                channelId: user.channelId
+                isVerified: user.isVerified
             }
         }));
     } catch (error) {
@@ -764,6 +678,7 @@ function handleGetVideos(req, res, query) {
         const videos = db.getVideos({
             category: query.category,
             channelId: query.channelId,
+            isShort: query.isShort === 'true' ? true : query.isShort === 'false' ? false : undefined,
             sortBy: query.sort || 'newest',
             limit: parseInt(query.limit) || 50
         });
@@ -786,22 +701,8 @@ function handleGetVideo(req, res, videoId) {
             return;
         }
         
-        // Получаем информацию о канале
-        const channel = db.getUserById(video.channelId);
-        
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            ...video,
-            channel: {
-                id: channel?.id,
-                name: channel?.username,
-                avatar: channel?.avatar,
-                banner: channel?.banner,
-                bio: channel?.bio,
-                subscribers: channel?.subscribers || 0,
-                isVerified: channel?.isVerified
-            }
-        }));
+        res.end(JSON.stringify(video));
     } catch (error) {
         res.writeHead(500);
         res.end(JSON.stringify({ error: 'Ошибка сервера' }));
@@ -818,36 +719,23 @@ async function handleUploadVideo(req, res) {
             return;
         }
         
-        const video = db.createVideo(data);
-        
-        // Логируем загрузку
-        db.addLog('VIDEO_UPLOAD', {
-            videoId: video.id,
-            title: data.title,
-            channelId: data.channelId,
-            userAgent: req.headers['user-agent']
+        const user = db.getUserById(data.channelId);
+        const video = db.createVideo({
+            ...data,
+            channelName: user?.username,
+            channelAvatar: user?.avatar,
+            thumbnailUrl: `https://picsum.photos/300/169?random=${Date.now()}`,
+            videoUrl: `/uploads/videos/${Date.now()}.mp4`
         });
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
             success: true,
-            videoId: video.id,
-            message: 'Видео успешно загружено'
+            videoId: video.id
         }));
     } catch (error) {
         res.writeHead(500);
         res.end(JSON.stringify({ error: 'Ошибка загрузки видео' }));
-    }
-}
-
-function handleGetShorts(req, res) {
-    try {
-        const shorts = db.getShorts(30);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(shorts));
-    } catch (error) {
-        res.writeHead(500);
-        res.end(JSON.stringify({ error: 'Ошибка сервера' }));
     }
 }
 
@@ -873,14 +761,6 @@ async function handleAddComment(req, res) {
         }
         
         const comment = db.addComment(data.videoId, data.userId, data.text);
-        
-        // Логируем комментарий
-        db.addLog('COMMENT_ADD', {
-            videoId: data.videoId,
-            userId: data.userId,
-            commentId: comment.id,
-            userAgent: req.headers['user-agent']
-        });
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
@@ -925,15 +805,6 @@ async function handleSubscribe(req, res) {
         
         const success = db.subscribe(data.subscriberId, data.channelId);
         
-        // Логируем подписку
-        if (success) {
-            db.addLog('SUBSCRIBE', {
-                subscriberId: data.subscriberId,
-                channelId: data.channelId,
-                userAgent: req.headers['user-agent']
-            });
-        }
-        
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success }));
     } catch (error) {
@@ -973,17 +844,6 @@ function handleSearch(req, res, query) {
     }
 }
 
-function handleRecommendations(req, res, query) {
-    try {
-        const recommendations = db.getRecommendations(query.userId);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(recommendations));
-    } catch (error) {
-        res.writeHead(500);
-        res.end(JSON.stringify({ error: 'Ошибка сервера' }));
-    }
-}
-
 function handleGetChannel(req, res, query) {
     try {
         const channel = db.getUserById(query.id);
@@ -994,8 +854,8 @@ function handleGetChannel(req, res, query) {
             return;
         }
         
-        const videos = db.getVideos({ channelId: channel.id });
-        const shorts = db.getShorts(50).filter(s => s.channelId === channel.id);
+        const videos = db.getVideos({ channelId: channel.id, isShort: false });
+        const shorts = db.getVideos({ channelId: channel.id, isShort: true });
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
@@ -1032,13 +892,6 @@ async function handleUpdateChannel(req, res) {
             return;
         }
         
-        // Логируем обновление
-        db.addLog('CHANNEL_UPDATE', {
-            email: data.email,
-            changes: Object.keys(data),
-            userAgent: req.headers['user-agent']
-        });
-        
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
             success: true,
@@ -1050,52 +903,6 @@ async function handleUpdateChannel(req, res) {
     }
 }
 
-async function handleEditVideo(req, res) {
-    try {
-        const data = await parseBody(req);
-        
-        if (!data.videoId || !data.title) {
-            res.writeHead(400);
-            res.end(JSON.stringify({ error: 'Заполните обязательные поля' }));
-            return;
-        }
-        
-        const video = db.data.videos[data.videoId] || db.data.shorts[data.videoId];
-        if (!video) {
-            res.writeHead(404);
-            res.end(JSON.stringify({ error: 'Видео не найдено' }));
-            return;
-        }
-        
-        // Обновляем данные видео
-        Object.assign(video, {
-            title: data.title,
-            description: data.description || video.description,
-            category: data.category || video.category,
-            tags: data.tags || video.tags
-        });
-        
-        db.save();
-        
-        // Логируем редактирование
-        db.addLog('VIDEO_EDIT', {
-            videoId: data.videoId,
-            title: data.title,
-            userAgent: req.headers['user-agent']
-        });
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            success: true,
-            video
-        }));
-    } catch (error) {
-        res.writeHead(500);
-        res.end(JSON.stringify({ error: 'Ошибка сервера' }));
-    }
-}
-
-// ===== АДМИН ОБРАБОТЧИКИ =====
 function handleAdminStats(req, res) {
     try {
         const stats = db.getAdminStats();
@@ -1109,14 +916,9 @@ function handleAdminStats(req, res) {
 
 function handleAdminVideos(req, res) {
     try {
-        const videos = Object.values(db.data.videos);
-        const shorts = Object.values(db.data.shorts);
-        
+        const videos = db.getAllVideos();
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            videos: videos.sort((a, b) => b.createdAt - a.createdAt),
-            shorts: shorts.sort((a, b) => b.createdAt - a.createdAt)
-        }));
+        res.end(JSON.stringify(videos));
     } catch (error) {
         res.writeHead(500);
         res.end(JSON.stringify({ error: 'Ошибка сервера' }));
@@ -1135,14 +937,6 @@ async function handleDeleteVideo(req, res) {
         
         const success = db.deleteVideo(data.videoId);
         
-        // Логируем удаление
-        if (success) {
-            db.addLog('VIDEO_DELETE', {
-                videoId: data.videoId,
-                userAgent: req.headers['user-agent']
-            });
-        }
-        
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success }));
     } catch (error) {
@@ -1153,12 +947,9 @@ async function handleDeleteVideo(req, res) {
 
 function handleAdminUsers(req, res) {
     try {
-        const users = Object.values(db.data.users);
-        
+        const users = db.getAllUsers();
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(
-            users.sort((a, b) => b.createdAt - a.createdAt)
-        ));
+        res.end(JSON.stringify(users));
     } catch (error) {
         res.writeHead(500);
         res.end(JSON.stringify({ error: 'Ошибка сервера' }));
@@ -1177,14 +968,6 @@ async function handleDeleteUser(req, res) {
         
         const success = db.deleteUser(data.email);
         
-        // Логируем удаление
-        if (success) {
-            db.addLog('USER_DELETE', {
-                email: data.email,
-                userAgent: req.headers['user-agent']
-            });
-        }
-        
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success }));
     } catch (error) {
@@ -1193,24 +976,9 @@ async function handleDeleteUser(req, res) {
     }
 }
 
-function handleAdminLogs(req, res) {
-    try {
-        const logs = db.data.logs.slice(-100).reverse();
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(logs));
-    } catch (error) {
-        res.writeHead(500);
-        res.end(JSON.stringify({ error: 'Ошибка сервера' }));
-    }
-}
-
-// ===== СТАТИЧЕСКИЕ ФАЙЛЫ =====
 function serveStaticFile(req, res) {
     let filePath = '.' + req.url;
-    if (filePath === './') {
-        filePath = './index.html';
-    }
+    if (filePath === './') filePath = './index.html';
     
     const extname = path.extname(filePath);
     let contentType = 'text/html';
@@ -1222,14 +990,11 @@ function serveStaticFile(req, res) {
         case '.png': contentType = 'image/png'; break;
         case '.jpg': case '.jpeg': contentType = 'image/jpeg'; break;
         case '.mp4': contentType = 'video/mp4'; break;
-        case '.webm': contentType = 'video/webm'; break;
-        case '.svg': contentType = 'image/svg+xml'; break;
     }
     
     fs.readFile(filePath, (error, content) => {
         if (error) {
             if (error.code === 'ENOENT') {
-                // Отдаем index.html для SPA
                 fs.readFile('./index.html', (error, content) => {
                     if (error) {
                         res.writeHead(404);
@@ -1250,11 +1015,11 @@ function serveStaticFile(req, res) {
     });
 }
 
-// ===== ЗАПУСК СЕРВЕРА =====
-server.listen(CONFIG.PORT, () => {
-    console.log(`🚀 UsTube Server запущен на порту ${CONFIG.PORT}`);
-    console.log(`🌐 Откройте в браузере: http://localhost:${CONFIG.PORT}`);
-    console.log(`👑 Админ доступ: ${CONFIG.ADMIN_EMAIL} / ${CONFIG.ADMIN_PASSWORD}`);
-    console.log(`📁 Данные сохраняются в: ${CONFIG.DB_FILE}`);
-    console.log(`📊 Все данные реальные и хранятся на сервере!`);
+// Запуск сервера
+server.listen(PORT, () => {
+    console.log(`🚀 UsTube Server запущен на порту ${PORT}`);
+    console.log(`🌐 Откройте: http://localhost:${PORT}`);
+    console.log(`👑 Админ: admin@ustube.com / admin123`);
+    console.log(`👤 Тестовый пользователь: test@user.com / test123`);
+    console.log(`📊 Все данные хранятся в: ${DB_FILE}`);
 });
