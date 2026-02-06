@@ -1,849 +1,863 @@
-class USTube {
-    constructor() {
-        this.apiUrl = window.location.origin;
-        this.user = null;
-        this.currentVideo = null;
-        this.videos = [];
-        this.page = 1;
-        this.limit = 20;
-        this.hasMore = true;
-        this.loading = false;
-        this.currentCategory = 'all';
-        this.searchQuery = '';
-        
-        this.init();
+#!/usr/bin/env node
+
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const url = require('url');
+const crypto = require('crypto');
+
+class USTubeServer {
+    constructor(port = process.env.PORT || 3000) {
+        this.port = port;
+        this.dataDir = './data';
+        this.ensureDataDir();
+        this.loadData();
+        this.setupRoutes();
+        this.start();
     }
     
-    async init() {
-        this.loadTheme();
-        this.setupEventListeners();
-        await this.checkAuth();
-        await this.loadStats();
-        await this.loadVideos();
-        this.updateUI();
-    }
-    
-    loadTheme() {
-        const theme = localStorage.getItem('ustube-theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
-        this.updateThemeIcon(theme);
-    }
-    
-    toggleTheme() {
-        const current = document.documentElement.getAttribute('data-theme');
-        const newTheme = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('ustube-theme', newTheme);
-        this.updateThemeIcon(newTheme);
-    }
-    
-    updateThemeIcon(theme) {
-        const icon = document.getElementById('themeIcon');
-        if (icon) {
-            icon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+    ensureDataDir() {
+        if (!fs.existsSync(this.dataDir)) {
+            fs.mkdirSync(this.dataDir, { recursive: true });
         }
     }
     
-    setupEventListeners() {
-        // Поиск
-        document.getElementById('searchForm')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.searchVideos();
-        });
+    loadData() {
+        // Пользователи
+        this.users = this.loadFromFile('users.json') || {};
         
-        // Загрузка видео
-        document.getElementById('videoFile')?.addEventListener('change', (e) => {
-            this.handleFileSelect(e.target.files[0]);
-        });
-        
-        // Шаги загрузки
-        document.getElementById('nextStep')?.addEventListener('click', () => {
-            this.nextUploadStep();
-        });
-        
-        document.getElementById('prevStep')?.addEventListener('click', () => {
-            this.prevUploadStep();
-        });
-        
-        document.getElementById('uploadBtn')?.addEventListener('click', () => {
-            this.uploadVideo();
-        });
-        
-        // Авторизация
-        document.getElementById('loginForm')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.login();
-        });
-        
-        document.getElementById('registerForm')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.register();
-        });
+        // Видео
+        this.videos = this.loadFromFile('videos.json') || {};
         
         // Комментарии
-        document.getElementById('commentInput')?.addEventListener('input', (e) => {
-            document.getElementById('submitComment').disabled = !e.target.value.trim();
-        });
+        this.comments = this.loadFromFile('comments.json') || {};
         
-        // Бесконечный скролл
-        window.addEventListener('scroll', () => {
-            if (this.loading || !this.hasMore) return;
-            
-            const scrollPosition = window.innerHeight + window.scrollY;
-            const pageHeight = document.documentElement.scrollHeight - 100;
-            
-            if (scrollPosition >= pageHeight) {
-                this.loadMoreVideos();
-            }
-        });
+        // Подписки
+        this.subscriptions = this.loadFromFile('subscriptions.json') || {};
+        
+        // Лайки
+        this.likes = this.loadFromFile('likes.json') || {};
+        
+        // История просмотров
+        this.history = this.loadFromFile('history.json') || {};
+        
+        console.log('✅ Данные загружены');
+        console.log(`👤 Пользователей: ${Object.keys(this.users).length}`);
+        console.log(`🎥 Видео: ${Object.keys(this.videos).length}`);
+        console.log(`💬 Комментариев: ${Object.keys(this.comments).length}`);
     }
     
-    async checkAuth() {
-        const token = localStorage.getItem('ustube-token');
-        if (!token) return;
-        
+    loadFromFile(filename) {
+        const filepath = path.join(this.dataDir, filename);
         try {
-            const response = await this.apiRequest('GET', '/api/auth/me', null, token);
-            if (response.success) {
-                this.user = response.user;
-                this.updateUserUI();
+            if (fs.existsSync(filepath)) {
+                return JSON.parse(fs.readFileSync(filepath, 'utf8'));
             }
         } catch (error) {
-            localStorage.removeItem('ustube-token');
+            console.error(`Ошибка загрузки ${filename}:`, error);
         }
+        return null;
     }
     
-    updateUserUI() {
-        const avatar = document.getElementById('userAvatar');
-        const userName = document.getElementById('userInfo')?.querySelector('.user-name');
-        const userEmail = document.getElementById('userInfo')?.querySelector('.user-email');
-        const loginBtn = document.getElementById('loginBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        
-        if (this.user) {
-            if (avatar) {
-                avatar.textContent = this.user.username.charAt(0).toUpperCase();
-                avatar.style.background = `linear-gradient(45deg, #ff0000, #065fd4)`;
-            }
-            if (userName) userName.textContent = this.user.username;
-            if (userEmail) userEmail.textContent = this.user.email;
-            if (loginBtn) loginBtn.style.display = 'none';
-            if (logoutBtn) logoutBtn.style.display = 'block';
-        } else {
-            if (avatar) avatar.textContent = '?';
-            if (userName) userName.textContent = 'Гость';
-            if (userEmail) userEmail.textContent = 'Войдите в аккаунт';
-            if (loginBtn) loginBtn.style.display = 'block';
-            if (logoutBtn) logoutBtn.style.display = 'none';
-        }
-    }
-    
-    async loadStats() {
+    saveToFile(filename, data) {
+        const filepath = path.join(this.dataDir, filename);
         try {
-            const response = await this.apiRequest('GET', '/api/stats');
-            if (response.success) {
-                const stats = response.stats;
-                document.getElementById('totalVideos').textContent = stats.totalVideos;
-                document.getElementById('totalUsers').textContent = stats.totalUsers;
-                document.getElementById('totalViews').textContent = this.formatNumber(stats.totalViews);
-            }
+            fs.writeFileSync(filepath, JSON.stringify(data, null, 2));
         } catch (error) {
-            console.error('Stats error:', error);
+            console.error(`Ошибка сохранения ${filename}:`, error);
         }
     }
     
-    async loadVideos(reset = true) {
-        if (this.loading) return;
+    generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    }
+    
+    hashPassword(password) {
+        return crypto.createHash('sha256').update(password).digest('hex');
+    }
+    
+    createToken(userId) {
+        const token = crypto.randomBytes(32).toString('hex');
+        const expires = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 дней
         
-        this.loading = true;
-        if (reset) {
-            this.page = 1;
-            this.videos = [];
-            document.getElementById('videosGrid').innerHTML = '';
+        if (!this.users[userId]) return null;
+        
+        this.users[userId].token = token;
+        this.users[userId].tokenExpires = expires;
+        this.saveToFile('users.json', this.users);
+        
+        return token;
+    }
+    
+    verifyToken(token) {
+        if (!token) return null;
+        
+        for (const userId in this.users) {
+            const user = this.users[userId];
+            if (user.token === token && user.tokenExpires > Date.now()) {
+                return userId;
+            }
         }
         
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('loadMore').style.display = 'none';
-        
-        try {
-            let url = `/api/videos?page=${this.page}&limit=${this.limit}`;
-            if (this.currentCategory !== 'all') url += `&category=${this.currentCategory}`;
-            if (this.searchQuery) url += `&search=${encodeURIComponent(this.searchQuery)}`;
+        return null;
+    }
+    
+    setupRoutes() {
+        this.routes = {
+            'GET': {
+                '/': this.serveIndex.bind(this),
+                '/api/auth/me': this.getCurrentUser.bind(this),
+                '/api/videos': this.getVideos.bind(this),
+                '/api/videos/:id': this.getVideo.bind(this),
+                '/api/videos/:id/comments': this.getComments.bind(this),
+                '/api/channels/subscriptions': this.getSubscriptions.bind(this),
+                '/api/channels/:id': this.getChannel.bind(this),
+                '/api/stats': this.getStats.bind(this)
+            },
+            'POST': {
+                '/api/auth/register': this.register.bind(this),
+                '/api/auth/login': this.login.bind(this),
+                '/api/auth/logout': this.logout.bind(this),
+                '/api/videos/upload': this.uploadVideo.bind(this),
+                '/api/videos/:id/comments': this.addComment.bind(this),
+                '/api/videos/:id/like': this.likeVideo.bind(this),
+                '/api/videos/:id/dislike': this.dislikeVideo.bind(this),
+                '/api/channels/:id/subscribe': this.subscribe.bind(this),
+                '/api/comments/:id/like': this.likeComment.bind(this)
+            }
+        };
+    }
+    
+    start() {
+        this.server = http.createServer((req, res) => {
+            const parsedUrl = url.parse(req.url, true);
+            const pathname = parsedUrl.pathname;
+            const method = req.method;
             
-            const response = await this.apiRequest('GET', url);
+            // CORS headers
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
             
-            if (response.success) {
-                const newVideos = response.videos;
-                this.videos = reset ? newVideos : [...this.videos, ...newVideos];
-                this.hasMore = response.videos.length === this.limit;
+            if (method === 'OPTIONS') {
+                res.writeHead(200);
+                res.end();
+                return;
+            }
+            
+            // Обработка статических файлов (для демонстрации)
+            if (pathname === '/' || pathname === '/index.html') {
+                this.serveIndex(req, res);
+                return;
+            }
+            
+            // Поиск обработчика маршрута
+            let handler = null;
+            let params = {};
+            
+            for (const route in this.routes[method] || {}) {
+                const routePattern = route.replace(/:\w+/g, '([^/]+)');
+                const regex = new RegExp(`^${routePattern}$`);
+                const match = pathname.match(regex);
                 
-                this.renderVideos();
-                
-                if (this.hasMore) {
-                    document.getElementById('loadMore').style.display = 'block';
+                if (match) {
+                    handler = this.routes[method][route];
+                    
+                    // Извлекаем параметры из пути
+                    const paramNames = [];
+                    const routeMatch = route.match(/:\w+/g);
+                    if (routeMatch) {
+                        routeMatch.forEach((param, index) => {
+                            params[param.substring(1)] = match[index + 1];
+                        });
+                    }
+                    
+                    break;
                 }
             }
-        } catch (error) {
-            console.error('Load videos error:', error);
-            this.showToast('Ошибка загрузки видео', 'error');
-        } finally {
-            this.loading = false;
-            document.getElementById('loading').style.display = 'none';
-        }
-    }
-    
-    renderVideos() {
-        const container = document.getElementById('videosGrid');
-        
-        if (this.videos.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-video-slash"></i>
-                    <h3>Видео не найдены</h3>
-                    <p>Попробуйте изменить параметры поиска</p>
-                </div>
-            `;
-            return;
-        }
-        
-        container.innerHTML = this.videos.map(video => `
-            <div class="video-card" onclick="ustube.watchVideo('${video._id}')">
-                <div class="video-thumbnail">
-                    <div style="width: 100%; height: 100%; background: linear-gradient(45deg, #ff0000, #065fd4); 
-                         display: flex; align-items: center; justify-content: center; color: white; font-size: 48px;">
-                        <i class="fas fa-play"></i>
-                    </div>
-                    <div class="video-duration">${this.formatDuration(video.duration)}</div>
-                </div>
-                <div class="video-info">
-                    <h3 class="video-title">${this.escapeHtml(video.title)}</h3>
-                    <div class="video-channel">
-                        <div class="channel-avatar-small">
-                            ${video.userId?.username?.charAt(0) || 'C'}
-                        </div>
-                        <div class="channel-name">
-                            ${video.userId?.username || 'Неизвестный автор'}
-                        </div>
-                    </div>
-                    <div class="video-stats">
-                        <span>${this.formatNumber(video.views)} просмотров</span>
-                        <span>•</span>
-                        <span>${this.timeAgo(video.createdAt)}</span>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    async watchVideo(id) {
-        try {
-            const response = await this.apiRequest('GET', `/api/videos/${id}`);
-            if (response.success) {
-                this.currentVideo = response.video;
-                this.showVideoModal();
-            }
-        } catch (error) {
-            console.error('Watch video error:', error);
-            this.showToast('Ошибка загрузки видео', 'error');
-        }
-    }
-    
-    showVideoModal() {
-        const video = this.currentVideo;
-        const modal = document.getElementById('videoModal');
-        
-        // Заполняем информацию
-        document.getElementById('videoModalTitle').textContent = video.title;
-        document.getElementById('videoViews').textContent = `${this.formatNumber(video.views)} просмотров`;
-        document.getElementById('videoDate').textContent = this.formatDate(video.createdAt);
-        document.getElementById('likeCount').textContent = this.formatNumber(video.likes);
-        document.getElementById('dislikeCount').textContent = this.formatNumber(video.dislikes);
-        document.getElementById('channelName').textContent = video.userId?.username || 'Неизвестный автор';
-        document.getElementById('channelSubs').textContent = `${this.formatNumber(video.userId?.subscribers || 0)} подписчиков`;
-        document.getElementById('videoDescriptionText').textContent = video.description || 'Нет описания';
-        
-        // Аватар канала
-        const avatar = document.getElementById('channelAvatar');
-        if (avatar) {
-            avatar.textContent = video.userId?.username?.charAt(0) || 'C';
-        }
-        
-        // Видео плеер
-        const container = document.getElementById('videoContainer');
-        container.innerHTML = `
-            <div style="width: 100%; height: 100%; background: #000; display: flex; align-items: center; justify-content: center; color: white;">
-                <div style="text-align: center;">
-                    <i class="fas fa-play-circle" style="font-size: 64px; margin-bottom: 16px;"></i>
-                    <h3 style="margin-bottom: 8px;">${this.escapeHtml(video.title)}</h3>
-                    <p style="color: #aaa;">USTube Video Player</p>
-                </div>
-            </div>
-        `;
-        
-        // Загружаем комментарии
-        this.loadComments(video._id);
-        
-        // Открываем модальное окно
-        this.openModal('videoModal');
-    }
-    
-    async loadComments(videoId) {
-        try {
-            const response = await this.apiRequest('GET', `/api/videos/${videoId}/comments`);
-            const container = document.getElementById('commentsList');
             
-            if (response.success && response.comments.length > 0) {
-                container.innerHTML = response.comments.map(comment => `
-                    <div class="comment">
-                        <div class="comment-avatar-small">
-                            ${comment.userId?.username?.charAt(0) || 'U'}
-                        </div>
-                        <div class="comment-content">
-                            <div class="comment-header">
-                                <span class="comment-author">${comment.userId?.username || 'Пользователь'}</span>
-                                <span class="comment-time">${this.timeAgo(comment.createdAt)}</span>
-                            </div>
-                            <div class="comment-text">${this.escapeHtml(comment.text)}</div>
-                            <div class="comment-actions">
-                                <button class="comment-action">
-                                    <i class="fas fa-thumbs-up"></i>
-                                    <span>${comment.likes}</span>
-                                </button>
-                                <button class="comment-action">Ответить</button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
+            if (handler) {
+                this.parseRequestBody(req, (body) => {
+                    req.body = body;
+                    req.params = params;
+                    req.query = parsedUrl.query;
+                    
+                    // Проверка авторизации для защищенных маршрутов
+                    const authHeader = req.headers.authorization;
+                    if (authHeader && authHeader.startsWith('Bearer ')) {
+                        const token = authHeader.substring(7);
+                        req.userId = this.verifyToken(token);
+                    }
+                    
+                    try {
+                        handler(req, res);
+                    } catch (error) {
+                        console.error('Handler error:', error);
+                        this.sendError(res, 'Внутренняя ошибка сервера', 500);
+                    }
+                });
             } else {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-comment-slash"></i>
-                        <p>Комментариев пока нет</p>
-                    </div>
-                `;
+                this.sendError(res, 'Маршрут не найден', 404);
+            }
+        });
+        
+        this.server.listen(this.port, () => {
+            console.log(`
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║   🎬 USTube Server запущен!                                 ║
+║                                                              ║
+║   🔗 Локальный: http://localhost:${this.port}${this.port < 1000 ? ' ' : ''}               ║
+║   🌐 Сеть: http://${this.getIPAddress()}:${this.port}                 ║
+║                                                              ║
+║   📊 Статистика:                                            ║
+║   👤 Пользователей: ${Object.keys(this.users).length}                          ║
+║   🎥 Видео: ${Object.keys(this.videos).length}                            ║
+║   💬 Комментариев: ${Object.keys(this.comments).length}                       ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+            `);
+        });
+    }
+    
+    getIPAddress() {
+        const interfaces = require('os').networkInterfaces();
+        for (const name of Object.keys(interfaces)) {
+            for (const iface of interfaces[name]) {
+                if (iface.family === 'IPv4' && !iface.internal) {
+                    return iface.address;
+                }
+            }
+        }
+        return 'localhost';
+    }
+    
+    parseRequestBody(req, callback) {
+        let body = '';
+        
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        
+        req.on('end', () => {
+            try {
+                if (body) {
+                    if (req.headers['content-type']?.includes('application/json')) {
+                        callback(JSON.parse(body));
+                    } else if (req.headers['content-type']?.includes('multipart/form-data')) {
+                        // Упрощенная обработка multipart/form-data
+                        const boundary = req.headers['content-type'].split('boundary=')[1];
+                        const parts = body.split('--' + boundary);
+                        
+                        const result = {};
+                        for (const part of parts) {
+                            const match = part.match(/name="([^"]+)"\r\n\r\n([\s\S]*?)\r\n/);
+                            if (match) {
+                                const [, name, value] = match;
+                                result[name] = value.trim();
+                            }
+                        }
+                        
+                        callback(result);
+                    } else {
+                        callback(body);
+                    }
+                } else {
+                    callback({});
+                }
+            } catch (error) {
+                callback({});
+            }
+        });
+    }
+    
+    sendJSON(res, data, statusCode = 200) {
+        res.writeHead(statusCode, {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
+        });
+        res.end(JSON.stringify(data));
+    }
+    
+    sendError(res, message, statusCode = 500) {
+        this.sendJSON(res, {
+            success: false,
+            message,
+            timestamp: Date.now()
+        }, statusCode);
+    }
+    
+    sendSuccess(res, data = {}) {
+        this.sendJSON(res, {
+            success: true,
+            ...data,
+            timestamp: Date.now()
+        });
+    }
+    
+    // ===== ОБРАБОТЧИКИ МАРШРУТОВ =====
+    
+    serveIndex(req, res) {
+        const indexPath = path.join(__dirname, 'index.html');
+        fs.readFile(indexPath, 'utf8', (err, data) => {
+            if (err) {
+                this.sendError(res, 'Ошибка загрузки страницы', 500);
+                return;
             }
             
-            // Аватар для комментария
-            const commentAvatar = document.getElementById('commentAvatar');
-            if (commentAvatar) {
-                commentAvatar.textContent = this.user?.username?.charAt(0) || '?';
-            }
-        } catch (error) {
-            console.error('Load comments error:', error);
-        }
+            res.writeHead(200, {
+                'Content-Type': 'text/html',
+                'Cache-Control': 'no-cache'
+            });
+            res.end(data);
+        });
     }
     
-    async addComment() {
-        const input = document.getElementById('commentInput');
-        const text = input.value.trim();
-        
-        if (!text || !this.currentVideo) return;
-        
-        if (!this.user) {
-            this.openLogin();
-            return;
-        }
-        
-        try {
-            const response = await this.apiRequest('POST', `/api/videos/${this.currentVideo._id}/comments`, { text });
-            if (response.success) {
-                input.value = '';
-                document.getElementById('submitComment').disabled = true;
-                this.showToast('Комментарий добавлен', 'success');
-                this.loadComments(this.currentVideo._id);
-            }
-        } catch (error) {
-            console.error('Add comment error:', error);
-            this.showToast('Ошибка добавления комментария', 'error');
-        }
-    }
+    // ===== АВТОРИЗАЦИЯ =====
     
-    async likeVideo() {
-        if (!this.user) {
-            this.openLogin();
-            return;
-        }
+    register(req, res) {
+        const { email, password, username } = req.body;
         
-        try {
-            const response = await this.apiRequest('POST', `/api/videos/${this.currentVideo._id}/like`);
-            if (response.success) {
-                document.getElementById('likeCount').textContent = this.formatNumber(response.likes);
-            }
-        } catch (error) {
-            console.error('Like video error:', error);
-        }
-    }
-    
-    async dislikeVideo() {
-        if (!this.user) {
-            this.openLogin();
-            return;
-        }
-        
-        this.showToast('Функция в разработке', 'info');
-    }
-    
-    async toggleSubscribe() {
-        if (!this.user) {
-            this.openLogin();
-            return;
-        }
-        
-        if (!this.currentVideo?.userId?._id) return;
-        
-        try {
-            const response = await this.apiRequest('POST', `/api/channels/${this.currentVideo.userId._id}/subscribe`);
-            if (response.success) {
-                const btn = document.getElementById('subscribeBtn');
-                btn.textContent = response.subscribed ? 'Вы подписаны' : 'Подписаться';
-                btn.classList.toggle('subscribed', response.subscribed);
-                this.showToast(response.subscribed ? 'Вы подписались!' : 'Вы отписались', 'success');
-            }
-        } catch (error) {
-            console.error('Subscribe error:', error);
-        }
-    }
-    
-    // Аутентификация
-    async login() {
-        const email = document.getElementById('loginEmail').value;
-        const password = document.getElementById('loginPassword').value;
-        
-        if (!email || !password) {
-            this.showAuthError('Заполните все поля', 'loginError');
-            return;
-        }
-        
-        try {
-            const response = await this.apiRequest('POST', '/api/auth/login', { email, password });
-            
-            if (response.success) {
-                this.user = response.user;
-                localStorage.setItem('ustube-token', response.token);
-                this.updateUserUI();
-                this.closeModal('loginModal');
-                this.showToast('Успешный вход!', 'success');
-                await this.loadVideos(true);
-            } else {
-                this.showAuthError(response.error || 'Ошибка входа', 'loginError');
-            }
-        } catch (error) {
-            this.showAuthError('Ошибка соединения', 'loginError');
-        }
-    }
-    
-    async register() {
-        const username = document.getElementById('registerUsername').value;
-        const email = document.getElementById('registerEmail').value;
-        const password = document.getElementById('registerPassword').value;
-        
-        if (!username || !email || !password) {
-            this.showAuthError('Заполните все поля', 'registerError');
-            return;
+        if (!email || !password || !username) {
+            return this.sendError(res, 'Все поля обязательны', 400);
         }
         
         if (password.length < 6) {
-            this.showAuthError('Пароль должен быть не менее 6 символов', 'registerError');
-            return;
+            return this.sendError(res, 'Пароль должен быть не менее 6 символов', 400);
         }
         
-        try {
-            const response = await this.apiRequest('POST', '/api/auth/register', { username, email, password });
-            
-            if (response.success) {
-                this.user = response.user;
-                localStorage.setItem('ustube-token', response.token);
-                this.updateUserUI();
-                this.closeModal('loginModal');
-                this.showToast('Регистрация успешна!', 'success');
-                await this.loadVideos(true);
-            } else {
-                this.showAuthError(response.error || 'Ошибка регистрации', 'registerError');
+        // Проверка уникальности email
+        for (const userId in this.users) {
+            if (this.users[userId].email === email) {
+                return this.sendError(res, 'Пользователь с таким email уже существует', 409);
             }
-        } catch (error) {
-            this.showAuthError('Ошибка соединения', 'registerError');
         }
+        
+        const userId = this.generateId();
+        const hashedPassword = this.hashPassword(password);
+        
+        this.users[userId] = {
+            id: userId,
+            email,
+            username,
+            password: hashedPassword,
+            createdAt: Date.now(),
+            subscribers: 0,
+            videos: [],
+            avatar: username.charAt(0).toUpperCase()
+        };
+        
+        this.saveToFile('users.json', this.users);
+        
+        const token = this.createToken(userId);
+        const { password: _, ...userWithoutPassword } = this.users[userId];
+        
+        this.sendSuccess(res, {
+            user: userWithoutPassword,
+            token
+        });
     }
     
-    async logout() {
-        try {
-            await this.apiRequest('POST', '/api/auth/logout');
-        } catch (error) {
-            // Игнорируем ошибки
+    login(req, res) {
+        const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return this.sendError(res, 'Email и пароль обязательны', 400);
         }
         
-        this.user = null;
-        localStorage.removeItem('ustube-token');
-        this.updateUserUI();
-        this.showToast('Вы вышли из аккаунта', 'success');
+        const hashedPassword = this.hashPassword(password);
+        
+        // Поиск пользователя
+        let user = null;
+        let userId = null;
+        
+        for (const id in this.users) {
+            if (this.users[id].email === email && this.users[id].password === hashedPassword) {
+                user = this.users[id];
+                userId = id;
+                break;
+            }
+        }
+        
+        if (!user) {
+            return this.sendError(res, 'Неверный email или пароль', 401);
+        }
+        
+        const token = this.createToken(userId);
+        const { password: _, ...userWithoutPassword } = user;
+        
+        this.sendSuccess(res, {
+            user: userWithoutPassword,
+            token
+        });
     }
     
-    showAuthError(message, elementId) {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.textContent = message;
-            element.style.display = 'block';
-            setTimeout(() => element.style.display = 'none', 5000);
+    logout(req, res) {
+        const userId = req.userId;
+        
+        if (userId && this.users[userId]) {
+            delete this.users[userId].token;
+            delete this.users[userId].tokenExpires;
+            this.saveToFile('users.json', this.users);
         }
+        
+        this.sendSuccess(res);
     }
     
-    // Загрузка видео
-    handleFileSelect(file) {
-        if (!file) return;
+    getCurrentUser(req, res) {
+        const userId = req.userId;
         
-        if (!file.type.startsWith('video/')) {
-            this.showToast('Выберите видео файл', 'error');
-            return;
+        if (!userId) {
+            return this.sendError(res, 'Не авторизован', 401);
         }
         
-        if (file.size > 100 * 1024 * 1024) { // 100MB
-            this.showToast('Файл слишком большой (макс. 100MB)', 'error');
-            return;
+        const user = this.users[userId];
+        if (!user) {
+            return this.sendError(res, 'Пользователь не найден', 404);
         }
         
-        const fileInfo = document.getElementById('fileInfo');
-        fileInfo.innerHTML = `
-            <strong>Выбран файл:</strong> ${file.name}<br>
-            <strong>Размер:</strong> ${this.formatFileSize(file.size)}
-        `;
-        
-        document.getElementById('nextStep').disabled = false;
+        const { password, token, tokenExpires, ...userWithoutSensitive } = user;
+        this.sendSuccess(res, { user: userWithoutSensitive });
     }
     
-    nextUploadStep() {
-        const currentStep = document.querySelector('.upload-step.active');
-        const nextStep = currentStep.nextElementSibling;
+    // ===== ВИДЕО =====
+    
+    getVideos(req, res) {
+        const { format, channels, search, limit = 20, offset = 0 } = req.query;
         
-        if (!nextStep) return;
+        let videos = Object.values(this.videos)
+            .filter(video => video.visibility === 'public')
+            .sort((a, b) => b.createdAt - a.createdAt);
         
-        currentStep.classList.remove('active');
-        nextStep.classList.add('active');
-        
-        document.getElementById('prevStep').disabled = false;
-        
-        if (!nextStep.nextElementSibling) {
-            document.getElementById('nextStep').style.display = 'none';
-            document.getElementById('uploadBtn').style.display = 'block';
+        // Фильтрация по формату
+        if (format) {
+            videos = videos.filter(video => video.format === format);
         }
+        
+        // Фильтрация по каналам
+        if (channels) {
+            const channelIds = channels.split(',');
+            videos = videos.filter(video => channelIds.includes(video.channelId));
+        }
+        
+        // Поиск
+        if (search) {
+            const searchLower = search.toLowerCase();
+            videos = videos.filter(video => 
+                video.title.toLowerCase().includes(searchLower) ||
+                video.description.toLowerCase().includes(searchLower) ||
+                video.tags.some(tag => tag.toLowerCase().includes(searchLower))
+            );
+        }
+        
+        // Пагинация
+        const paginatedVideos = videos.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+        
+        // Добавляем информацию о канале
+        const videosWithChannel = paginatedVideos.map(video => {
+            const channel = this.users[video.channelId];
+            return {
+                ...video,
+                channel: {
+                    id: channel.id,
+                    username: channel.username,
+                    subscribers: channel.subscribers || 0,
+                    avatar: channel.avatar
+                }
+            };
+        });
+        
+        this.sendSuccess(res, {
+            videos: videosWithChannel,
+            total: videos.length
+        });
     }
     
-    prevUploadStep() {
-        const currentStep = document.querySelector('.upload-step.active');
-        const prevStep = currentStep.previousElementSibling;
+    getVideo(req, res) {
+        const videoId = req.params.id;
+        const video = this.videos[videoId];
         
-        if (!prevStep) return;
-        
-        currentStep.classList.remove('active');
-        prevStep.classList.add('active');
-        
-        if (!prevStep.previousElementSibling) {
-            document.getElementById('prevStep').disabled = true;
+        if (!video) {
+            return this.sendError(res, 'Видео не найдено', 404);
         }
         
-        document.getElementById('nextStep').style.display = 'block';
-        document.getElementById('uploadBtn').style.display = 'none';
+        // Увеличиваем счетчик просмотров
+        video.views = (video.views || 0) + 1;
+        this.saveToFile('videos.json', this.videos);
+        
+        // Добавляем в историю просмотров
+        if (req.userId) {
+            if (!this.history[req.userId]) {
+                this.history[req.userId] = [];
+            }
+            
+            this.history[req.userId].unshift({
+                videoId,
+                watchedAt: Date.now()
+            });
+            
+            // Ограничиваем историю 100 записями
+            if (this.history[req.userId].length > 100) {
+                this.history[req.userId] = this.history[req.userId].slice(0, 100);
+            }
+            
+            this.saveToFile('history.json', this.history);
+        }
+        
+        const channel = this.users[video.channelId];
+        const videoWithChannel = {
+            ...video,
+            channel: {
+                id: channel.id,
+                username: channel.username,
+                subscribers: channel.subscribers || 0,
+                avatar: channel.avatar
+            }
+        };
+        
+        this.sendSuccess(res, { video: videoWithChannel });
     }
     
-    async uploadVideo() {
-        if (!this.user) {
-            this.openLogin();
-            return;
+    uploadVideo(req, res) {
+        const userId = req.userId;
+        
+        if (!userId) {
+            return this.sendError(res, 'Требуется авторизация', 401);
         }
         
-        const title = document.getElementById('videoTitle').value;
-        const description = document.getElementById('videoDescription').value;
-        const category = document.getElementById('videoCategory').value;
-        const visibility = document.querySelector('input[name="visibility"]:checked')?.value || 'public';
+        const { title, description, tags, visibility = 'public' } = req.body;
         
         if (!title) {
-            this.showToast('Введите название видео', 'error');
-            return;
+            return this.sendError(res, 'Название видео обязательно', 400);
         }
         
-        const fileInput = document.getElementById('videoFile');
-        if (!fileInput.files[0]) {
-            this.showToast('Выберите видео файл', 'error');
-            return;
-        }
+        const videoId = this.generateId();
+        const parsedTags = tags ? JSON.parse(tags) : [];
         
-        const formData = new FormData();
-        formData.append('video', fileInput.files[0]);
-        formData.append('title', title);
-        formData.append('description', description);
-        formData.append('category', category);
-        formData.append('visibility', visibility);
-        formData.append('duration', 180); // В реальном приложении вычисляем длительность
-        
-        try {
-            const response = await this.apiRequest('POST', '/api/videos', formData, true);
-            
-            if (response.success) {
-                this.closeModal('uploadModal');
-                this.showToast('Видео успешно загружено!', 'success');
-                await this.loadVideos(true);
-            } else {
-                this.showToast(response.error || 'Ошибка загрузки', 'error');
-            }
-        } catch (error) {
-            console.error('Upload error:', error);
-            this.showToast('Ошибка загрузки видео', 'error');
-        }
-    }
-    
-    // Поиск
-    searchVideos() {
-        const query = document.getElementById('searchInput').value.trim();
-        this.searchQuery = query;
-        this.loadVideos(true);
-    }
-    
-    filterVideos(category) {
-        this.currentCategory = category;
-        document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
-        this.loadVideos(true);
-    }
-    
-    loadMoreVideos() {
-        this.page++;
-        this.loadVideos(false);
-    }
-    
-    // Утилиты
-    async apiRequest(method, endpoint, data = null, isFormData = false) {
-        const url = this.apiUrl + endpoint;
-        const headers = {};
-        
-        const token = localStorage.getItem('ustube-token');
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-        
-        if (!isFormData && method !== 'GET') {
-            headers['Content-Type'] = 'application/json';
-        }
-        
-        const options = {
-            method,
-            headers
+        this.videos[videoId] = {
+            id: videoId,
+            title,
+            description: description || '',
+            channelId: userId,
+            views: 0,
+            likes: 0,
+            dislikes: 0,
+            duration: Math.floor(Math.random() * 600) + 60, // 1-10 минут для демо
+            format: 'video',
+            tags: parsedTags,
+            visibility,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
         };
         
-        if (data) {
-            if (isFormData) {
-                options.body = data;
-            } else {
-                options.body = JSON.stringify(data);
-            }
+        // Добавляем видео в список пользователя
+        if (!this.users[userId].videos) {
+            this.users[userId].videos = [];
         }
+        this.users[userId].videos.push(videoId);
         
-        try {
-            const response = await fetch(url, options);
-            const result = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(result.error || 'Ошибка сервера');
-            }
-            
-            return result;
-        } catch (error) {
-            console.error('API Request error:', error);
-            throw error;
-        }
-    }
-    
-    openModal(id) {
-        document.getElementById(id).classList.add('show');
-        document.body.style.overflow = 'hidden';
-    }
-    
-    closeModal(id) {
-        document.getElementById(id).classList.remove('show');
-        document.body.style.overflow = 'auto';
-    }
-    
-    openLogin() {
-        this.openModal('loginModal');
-    }
-    
-    openUpload() {
-        if (!this.user) {
-            this.openLogin();
-            return;
-        }
-        this.openModal('uploadModal');
-    }
-    
-    showToast(message, type = 'info') {
-        const container = document.getElementById('toastContainer');
-        const toast = document.createElement('div');
-        toast.className = 'toast';
+        this.saveToFile('videos.json', this.videos);
+        this.saveToFile('users.json', this.users);
         
-        const icons = {
-            success: 'fas fa-check-circle',
-            error: 'fas fa-exclamation-circle',
-            info: 'fas fa-info-circle',
-            warning: 'fas fa-exclamation-triangle'
-        };
-        
-        toast.innerHTML = `
-            <i class="${icons[type] || icons.info}"></i>
-            <span>${message}</span>
-        `;
-        
-        container.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.remove();
-        }, 5000);
-    }
-    
-    formatNumber(num) {
-        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-        return num;
-    }
-    
-    formatDuration(seconds) {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-        
-        if (hours > 0) {
-            return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
-        return `${minutes}:${secs.toString().padStart(2, '0')}`;
-    }
-    
-    timeAgo(dateString) {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now - date;
-        const diffSec = Math.floor(diffMs / 1000);
-        const diffMin = Math.floor(diffSec / 60);
-        const diffHour = Math.floor(diffMin / 60);
-        const diffDay = Math.floor(diffHour / 24);
-        
-        if (diffDay > 365) return Math.floor(diffDay / 365) + ' г. назад';
-        if (diffDay > 30) return Math.floor(diffDay / 30) + ' мес. назад';
-        if (diffDay > 0) return diffDay + ' дн. назад';
-        if (diffHour > 0) return diffHour + ' ч. назад';
-        if (diffMin > 0) return diffMin + ' мин. назад';
-        return 'только что';
-    }
-    
-    formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ru-RU', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
+        this.sendSuccess(res, {
+            videoId,
+            message: 'Видео успешно загружено'
         });
     }
     
-    formatFileSize(bytes) {
-        if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(2) + ' GB';
-        if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
-        if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
-        return bytes + ' bytes';
-    }
-    
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    // UI методы для HTML onclick
-    updateUI() {
-        // Обновление состояния UI
-    }
-}
-
-// Глобальные методы для HTML onclick
-function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('show');
-}
-
-function toggleUserMenu() {
-    document.getElementById('userMenu').classList.toggle('show');
-}
-
-function toggleNotifications() {
-    // Реализация уведомлений
-    ustube.showToast('Уведомления в разработке', 'info');
-}
-
-function openStudio() {
-    ustube.showToast('Студия в разработке', 'info');
-}
-
-function openSettings() {
-    ustube.showToast('Настройки в разработке', 'info');
-}
-
-function shareVideo() {
-    if (!ustube.currentVideo) return;
-    
-    const url = `${window.location.origin}/video/${ustube.currentVideo._id}`;
-    if (navigator.share) {
-        navigator.share({
-            title: ustube.currentVideo.title,
-            text: 'Посмотрите это видео на USTube!',
-            url: url
+    likeVideo(req, res) {
+        const userId = req.userId;
+        const videoId = req.params.id;
+        
+        if (!userId) {
+            return this.sendError(res, 'Требуется авторизация', 401);
+        }
+        
+        if (!this.videos[videoId]) {
+            return this.sendError(res, 'Видео не найдено', 404);
+        }
+        
+        const likeKey = `${userId}_${videoId}`;
+        
+        if (!this.likes[likeKey]) {
+            this.likes[likeKey] = {
+                userId,
+                videoId,
+                type: 'like',
+                createdAt: Date.now()
+            };
+            
+            this.videos[videoId].likes = (this.videos[videoId].likes || 0) + 1;
+            
+            this.saveToFile('likes.json', this.likes);
+            this.saveToFile('videos.json', this.videos);
+        }
+        
+        this.sendSuccess(res, {
+            likes: this.videos[videoId].likes
         });
-    } else {
-        navigator.clipboard.writeText(url)
-            .then(() => ustube.showToast('Ссылка скопирована', 'success'))
-            .catch(() => ustube.showToast('Ошибка копирования', 'error'));
+    }
+    
+    dislikeVideo(req, res) {
+        const userId = req.userId;
+        const videoId = req.params.id;
+        
+        if (!userId) {
+            return this.sendError(res, 'Требуется авторизация', 401);
+        }
+        
+        if (!this.videos[videoId]) {
+            return this.sendError(res, 'Видео не найдено', 404);
+        }
+        
+        const dislikeKey = `${userId}_${videoId}_dislike`;
+        
+        if (!this.likes[dislikeKey]) {
+            this.likes[dislikeKey] = {
+                userId,
+                videoId,
+                type: 'dislike',
+                createdAt: Date.now()
+            };
+            
+            this.videos[videoId].dislikes = (this.videos[videoId].dislikes || 0) + 1;
+            
+            this.saveToFile('likes.json', this.likes);
+            this.saveToFile('videos.json', this.videos);
+        }
+        
+        this.sendSuccess(res, {
+            dislikes: this.videos[videoId].dislikes
+        });
+    }
+    
+    // ===== КОММЕНТАРИИ =====
+    
+    getComments(req, res) {
+        const videoId = req.params.id;
+        
+        // Получаем все комментарии для видео
+        const videoComments = Object.values(this.comments)
+            .filter(comment => comment.videoId === videoId)
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .map(comment => {
+                const author = this.users[comment.userId];
+                return {
+                    ...comment,
+                    author: {
+                        id: author.id,
+                        username: author.username,
+                        avatar: author.avatar
+                    }
+                };
+            });
+        
+        this.sendSuccess(res, { comments: videoComments });
+    }
+    
+    addComment(req, res) {
+        const userId = req.userId;
+        const videoId = req.params.id;
+        const { text } = req.body;
+        
+        if (!userId) {
+            return this.sendError(res, 'Требуется авторизация', 401);
+        }
+        
+        if (!text || text.trim().length === 0) {
+            return this.sendError(res, 'Комментарий не может быть пустым', 400);
+        }
+        
+        if (!this.videos[videoId]) {
+            return this.sendError(res, 'Видео не найдено', 404);
+        }
+        
+        const commentId = this.generateId();
+        
+        this.comments[commentId] = {
+            id: commentId,
+            videoId,
+            userId,
+            text: text.trim(),
+            likes: 0,
+            createdAt: Date.now()
+        };
+        
+        this.saveToFile('comments.json', this.comments);
+        
+        const author = this.users[userId];
+        const commentWithAuthor = {
+            ...this.comments[commentId],
+            author: {
+                id: author.id,
+                username: author.username,
+                avatar: author.avatar
+            }
+        };
+        
+        this.sendSuccess(res, { comment: commentWithAuthor });
+    }
+    
+    likeComment(req, res) {
+        const userId = req.userId;
+        const commentId = req.params.id;
+        
+        if (!userId) {
+            return this.sendError(res, 'Требуется авторизация', 401);
+        }
+        
+        if (!this.comments[commentId]) {
+            return this.sendError(res, 'Комментарий не найден', 404);
+        }
+        
+        this.comments[commentId].likes = (this.comments[commentId].likes || 0) + 1;
+        this.saveToFile('comments.json', this.comments);
+        
+        this.sendSuccess(res, {
+            likes: this.comments[commentId].likes
+        });
+    }
+    
+    // ===== КАНАЛЫ И ПОДПИСКИ =====
+    
+    getChannel(req, res) {
+        const channelId = req.params.id;
+        const channel = this.users[channelId];
+        
+        if (!channel) {
+            return this.sendError(res, 'Канал не найден', 404);
+        }
+        
+        const { password, token, tokenExpires, ...channelWithoutSensitive } = channel;
+        
+        // Получаем видео канала
+        const channelVideos = Object.values(this.videos)
+            .filter(video => video.channelId === channelId && video.visibility === 'public')
+            .sort((a, b) => b.createdAt - a.createdAt);
+        
+        this.sendSuccess(res, {
+            channel: channelWithoutSensitive,
+            videos: channelVideos
+        });
+    }
+    
+    getSubscriptions(req, res) {
+        const userId = req.userId;
+        
+        if (!userId) {
+            return this.sendError(res, 'Требуется авторизация', 401);
+        }
+        
+        // Получаем подписки пользователя
+        const userSubscriptions = Object.values(this.subscriptions)
+            .filter(sub => sub.userId === userId)
+            .map(sub => {
+                const channel = this.users[sub.channelId];
+                return {
+                    id: channel.id,
+                    username: channel.username,
+                    avatar: channel.avatar,
+                    subscribers: channel.subscribers || 0,
+                    subscribedAt: sub.createdAt
+                };
+            });
+        
+        this.sendSuccess(res, { subscriptions: userSubscriptions });
+    }
+    
+    subscribe(req, res) {
+        const userId = req.userId;
+        const channelId = req.params.id;
+        
+        if (!userId) {
+            return this.sendError(res, 'Требуется авторизация', 401);
+        }
+        
+        if (!this.users[channelId]) {
+            return this.sendError(res, 'Канал не найден', 404);
+        }
+        
+        if (userId === channelId) {
+            return this.sendError(res, 'Нельзя подписаться на себя', 400);
+        }
+        
+        const subscriptionKey = `${userId}_${channelId}`;
+        let subscribed = false;
+        
+        if (this.subscriptions[subscriptionKey]) {
+            // Отписываемся
+            delete this.subscriptions[subscriptionKey];
+            this.users[channelId].subscribers = Math.max(0, (this.users[channelId].subscribers || 0) - 1);
+        } else {
+            // Подписываемся
+            this.subscriptions[subscriptionKey] = {
+                userId,
+                channelId,
+                createdAt: Date.now()
+            };
+            
+            this.users[channelId].subscribers = (this.users[channelId].subscribers || 0) + 1;
+            subscribed = true;
+        }
+        
+        this.saveToFile('subscriptions.json', this.subscriptions);
+        this.saveToFile('users.json', this.users);
+        
+        this.sendSuccess(res, {
+            subscribed,
+            subscribers: this.users[channelId].subscribers
+        });
+    }
+    
+    // ===== СТАТИСТИКА =====
+    
+    getStats(req, res) {
+        const stats = {
+            totalUsers: Object.keys(this.users).length,
+            totalVideos: Object.keys(this.videos).length,
+            totalComments: Object.keys(this.comments).length,
+            totalSubscriptions: Object.keys(this.subscriptions).length,
+            totalViews: Object.values(this.videos).reduce((sum, video) => sum + (video.views || 0), 0),
+            totalLikes: Object.values(this.videos).reduce((sum, video) => sum + (video.likes || 0), 0),
+            serverUptime: process.uptime(),
+            timestamp: Date.now()
+        };
+        
+        this.sendSuccess(res, { stats });
     }
 }
 
-function saveVideo() {
-    if (!ustube.user) {
-        ustube.openLogin();
-        return;
-    }
-    ustube.showToast('Видео сохранено', 'success');
-}
+// Запуск сервера
+const PORT = process.env.PORT || 3000;
+const server = new USTubeServer(PORT);
 
-function switchAuthTab(tab) {
-    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-    event.target.classList.add('active');
-    
-    document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
-    document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
-}
-
-function togglePassword(inputId) {
-    const input = document.getElementById(inputId);
-    const icon = event.target.querySelector('i');
-    
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.className = 'fas fa-eye-slash';
-    } else {
-        input.type = 'password';
-        icon.className = 'fas fa-eye';
-    }
-}
-
-// Инициализация приложения
-let ustube;
-
-document.addEventListener('DOMContentLoaded', () => {
-    ustube = new USTube();
-    window.ustube = ustube;
-    
-    // Глобальные методы
-    window.toggleTheme = () => ustube.toggleTheme();
-    window.openLogin = () => ustube.openLogin();
-    window.openUpload = () => ustube.openUpload();
-    window.logout = () => ustube.logout();
-    window.closeModal = (id) => ustube.closeModal(id);
-    window.likeVideo = () => ustube.likeVideo();
-    window.dislikeVideo = () => ustube.dislikeVideo();
-    window.toggleSubscribe = () => ustube.toggleSubscribe();
-    window.addComment = () => ustube.addComment();
-    window.filterVideos = (category) => ustube.filterVideos(category);
-    window.loadMoreVideos = () => ustube.loadMoreVideos();
+// Обработка завершения
+process.on('SIGINT', () => {
+    console.log('\n👋 Сервер завершает работу...');
+    process.exit(0);
 });
+
+process.on('SIGTERM', () => {
+    console.log('\n👋 Сервер завершает работу...');
+    process.exit(0);
+});
+
+{
+  "name": "ustube",
+  "version": "3.0.0",
+  "description": "Полноценный YouTube клон с работающим сервером",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "deploy": "node server.js"
+  },
+  "keywords": ["youtube", "clone", "video", "platform", "ustube"],
+  "author": "USTube Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
